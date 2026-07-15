@@ -32,14 +32,14 @@ One wording flag before the table, because the plan is loose here and it tripped
 
 The four sub-analyses land like this:
 
-| Sub-analysis | Phase | What lands |
-|---|---|---|
-| A, linear part | 1 | Descriptive tables; ridge full-task SOAK across periods; the `only_<cat>` and `not_<cat>` category tasks; ridge coefficients at `lambda.min` (top-10); the cheap baselines that share the harness and need no SHAP |
-| A, boosted part | 2 | XGBoost full-task SOAK; ROC with 0.5 points and the high-specificity zoom; same/other/all accuracy by period; confusion matrices at the FNR targets |
-| B (SHAP) | 2 | Exact TreeSHAP on the full-task XGBoost models |
-| C (SHAP clustering) | 2 | k-means over per-child SHAP vectors; CH/DB model selection; the k=4 seed=4 characterization |
-| D (fairness) | 2 | glmnet-only SOAK, one fairness subset at a time, at `sizes=-1` and `sizes=0` |
-| Year extension | 3 | Re-run the chain on 2016–2024; characterize anything specific to 2024 |
+| Sub-analysis        | Phase | What lands                                                                                                                                                                                                         |
+| ------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A, linear part      | 1     | Descriptive tables; ridge full-task SOAK across periods; the `only_<cat>` and `not_<cat>` category tasks; ridge coefficients at `lambda.min` (top-10); the cheap baselines that share the harness and need no SHAP |
+| A, boosted part     | 2     | XGBoost full-task SOAK; ROC with 0.5 points and the high-specificity zoom; same/other/all accuracy by period; confusion matrices at the FNR targets                                                                |
+| B (SHAP)            | 2     | Exact TreeSHAP on the full-task XGBoost models                                                                                                                                                                     |
+| C (SHAP clustering) | 2     | k-means over per-child SHAP vectors; CH/DB model selection; the k=4 seed=4 characterization                                                                                                                        |
+| D (fairness)        | 2     | glmnet-only SOAK, one fairness subset at a time, at `sizes=-1` and `sizes=0`                                                                                                                                       |
+| Year extension      | 3     | Re-run the chain on 2016–2024; characterize anything specific to 2024                                                                                                                                              |
 
 ### Phase 1
 
@@ -82,7 +82,7 @@ Cycle that over every period and fold and you get the full grid of same/other/al
 
 Why not soakpy? Four reasons, and it stays a reference (PyPI, version 0.0.54) rather than a dependency. It stratifies on the subset only, not on the (subset, outcome) pair, which matters with an outcome this imbalanced; in the paper's NSCH dataset the majority class outnumbers the minority 31.8 to 1. Its downsampling isn't seeded, and the fairness runs need it to be. Its high-level API is regression-only, and this is classification. And it pulls in more dependencies than the package should carry for one splitter. Caveat on my own claims: I haven't been through its 0.0.54 source line by line, so confirm those specifics before leaning on a soakpy comparison.
 
-Validation happens two ways. First, against the R fold assignments on the public NSCH_autism.csv fixture (the SOAK datasets live on [Zenodo](https://doi.org/10.5281/zenodo.18273949); [cv-same-other-paper](https://github.com/tdhock/cv-same-other-paper) builds them). Same seed, folds=10, then assert that the fold IDs and the same/other/all index sets match exactly for every subset and fold. Second, against `soakpy.split` on the plain partitioning, where the two should agree, as a cheap way to catch logic bugs. The fixture's subsets are survey years (2019 with 18,202 children, 2020 with 27,808) while ours are periods, but the splitter doesn't care what the subset means, so the fixture still exercises the logic. One detail worth carrying through: the original analysis used different random seeds in different places. Core benchmark, seed 1. Fairness runs, seed 42. The clustering swept seeds 1 to 10 and reported seed 4. Reproducing the study's actual folds and cluster labels means matching those, so the splitter's seed handling has to make that possible per analysis.
+Validation happens two ways. First, against the R fold assignments on the public NSCH_autism.csv fixture (the SOAK datasets live on [Zenodo](https://doi.org/10.5281/zenodo.18273949); [cv-same-other-paper](https://github.com/tdhock/cv-same-other-paper) builds them). Export the fold column from the R run and feed it through the splitter's precomputed path, then assert the same/other/all index sets match exactly for every subset and fold. The fold draw itself can't match across languages (R's `sample()` and NumPy's generator are different RNGs), so the set logic is validated exactly, our own seeded assignment statistically, and R's actual assignments stay importable whenever the study's exact folds are needed. Second, against `soakpy.split` on the plain partitioning, where the two should agree, as a cheap way to catch logic bugs. The fixture's subsets are survey years (2019 with 18,202 children, 2020 with 27,808) while ours are periods, but the splitter doesn't care what the subset means, so the fixture still exercises the logic. One detail worth carrying through: the original analysis used different random seeds in different places. Core benchmark, seed 1. Fairness runs, seed 42. The clustering swept seeds 1 to 10 and reported seed 4. Reproducing the study's actual folds and cluster labels means matching those, so the splitter's seed handling has to make that possible per analysis.
 
 ## 3. Repository
 

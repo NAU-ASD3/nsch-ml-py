@@ -21,3 +21,9 @@ The replication's cross-validation is unweighted by design, matching the origina
 ## Fixtures are fetched, not committed
 
 The NSCH_autism splitter-validation fixture is 46,010 rows by 364 columns, too heavy for the repo. Tests that need it download it from the Zenodo record (10.5281/zenodo.18273949) with a pinned checksum, cache it under `fixtures/cache/` (gitignored), and skip when offline (`network` marker). The one-line golden header from the R model matrix is tiny and is committed.
+
+## Fold assignment: replicate the rules, import the draws
+
+R's `sample()` under `set.seed()` and NumPy's generator are different RNGs, so no seed makes a Python fold assignment or downsample reproduce R's draw-for-draw. The splitter therefore splits equivalence in two. The deterministic part, the mapping from a fold assignment to same/other/all index sets, is pure set logic and matches mlr3resampling exactly; the equivalence tests feed the fold column exported from the R analysis through `assign_folds(precomputed=...)` (mirroring mlr3resampling's own user-supplied fold role) and assert the resulting index sets full-vector. The random parts replicate R's rules, not its draws: fold assignment shuffles and deals each (subset, outcome) cell round-robin, and the `sizes=0` downsample transcribes the R source's nominal-size arithmetic (`same = floor(full * (K-1)/K)`, `all = sum(same)`, `other = all - same`; per-stratum kept counts of `floor(L_s * target / nominal_own)`). Each downsampled split draws from an independent stream derived from the seed and the split's identity, so results never depend on iteration order or parallel scheduling.
+
+One version caution: the class the original analysis used, `ResamplingSameOtherCV`, has been removed from current mlr3resampling (present in the 2024.9.6 archive, gone by 2026.5.19). The semantics here were pinned against the archived source, and any R-side rerun needs the package version pinned accordingly.

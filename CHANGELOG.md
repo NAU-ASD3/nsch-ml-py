@@ -7,6 +7,12 @@ Versions follow a date-based scheme: `YYYY.M.DD`.
 
 ## [Unreleased]
 
+## [2026.7.8] - 2026-07-08
+
+### Added
+
+- `nsch_ml.soak` (PR #2): stratified fold assignment with a precomputed passthrough for reproducing the R analysis's folds, the same/other/all split iterator with the `sizes=0` stratified downsampling, and the inner ignore-group k-fold. Semantics pinned against the mlr3resampling source (archived `ResamplingSameOtherCV` 2024.9.6; current `ResamplingSameOtherSizesCV`).
+
 ## [2026.7.7] - 2026-07-07
 
 ### Added

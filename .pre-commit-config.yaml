@@ -21,7 +21,7 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ["--maxkb=500"]  # NSCH .dta files are large; force LFS or skip.
+        args: ["--maxkb=500"] # NSCH .dta files are large; force LFS or skip.
       - id: check-case-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
@@ -38,13 +38,15 @@ repos:
       - id: ruff-format
 
   # --- mypy: strict type checking ---------------------------------------
-  # Runs mypy on the source package. Tests are excluded from pre-commit
-  # mypy because they intentionally use looser typing (see pyproject.toml).
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+  # Runs the project's own mypy via uv, so pre-commit, CI, and the local
+  # gate use the same mypy version, environment, and config. A mirrored
+  # hook runs in an isolated venv without the project's dependencies,
+  # which makes numpy-based type aliases silently collapse to Any.
+  - repo: local
     hooks:
       - id: mypy
-        files: ^src/
-        additional_dependencies:
-          - polars>=1.24
-          - pydantic>=2.6
+        name: mypy
+        entry: uv run mypy src/
+        language: system
+        types: [python]
+        pass_filenames: false
