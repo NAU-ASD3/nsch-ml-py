@@ -2,7 +2,7 @@
 name = "nsch-ml"
 # Date-based versioning, matching the nsch and nsch-py convention.
 # Bump to the actual merge day before merging (this is the PR #1 placeholder).
-version = "2026.7.7"
+version = "2026.7.8"
 description = "Python replication of the ASD3 NSCH machine-learning analysis: SOAK cross-validation, penalized models, SHAP, and fairness analyses on the harmonized NSCH dataset."
 readme = "README.md"
 requires-python = ">=3.11"
