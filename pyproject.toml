@@ -1,8 +1,8 @@
 [project]
 name = "nsch-ml"
 # Date-based versioning, matching the nsch and nsch-py convention.
-# Bump to the actual merge day before merging (this is the PR #1 placeholder).
-version = "2026.7.8"
+# Bumped to the merge day on every PR.
+version = "2026.8.4"
 description = "Python replication of the ASD3 NSCH machine-learning analysis: SOAK cross-validation, penalized models, SHAP, and fairness analyses on the harmonized NSCH dataset."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,7 +30,7 @@ classifiers = [
 
 dependencies = [
     "polars>=1.43.2,<2",
-    "pandas>=3.0.5",       # the sklearn/xgboost boundary; prep stays in Polars
+    "pandas>=3.0.5",     # the sklearn/xgboost boundary; prep stays in Polars
     "scikit-learn>=1.6", # penalized logistic, k-means, metrics
     "xgboost>=2.1",
     "shap>=0.46",

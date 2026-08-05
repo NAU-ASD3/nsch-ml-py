@@ -201,11 +201,15 @@ def iter_soak_splits(
     ``same = floor(full * (K-1)/K)``, ``all = sum(same)``,
     ``other = all - same``. A source whose nominal size already equals
     that minimum (typically SAME) is not duplicated. The downsample
-    replicates the R rule: within each outcome stratum of the actual
-    train set, rows are shuffled and a proportional prefix kept, with
-    per-stratum counts of ``floor(L_s * target / nominal_own)``, so the
-    result preserves outcome balance and its total may fall slightly
-    short of the target. Each downsampled split draws from an
+    replicates the R rule: within each ``(subset, outcome)`` stratum of
+    the actual train set, rows are shuffled and a proportional prefix
+    kept, with per-stratum counts of
+    ``floor(L_s * target / nominal_own)``, so the result preserves both
+    subset and outcome balance and its total may fall slightly short of
+    the target. Stratifying on the pair rather than on outcome alone
+    changes nothing for SAME and OTHER, whose train sets span a single
+    subset, but is what makes ALL's counts match mlr3resampling
+    exactly. Each downsampled split draws from an
     independent stream derived from ``seed`` and the split's identity,
     so results do not depend on iteration order; the draw is
     reproducible here but does not reproduce R's row selection.
@@ -256,6 +260,7 @@ def iter_soak_splits(
         _require_same_length(folds_arr, outcome_arr)
 
     labels = np.unique(subset_arr)
+    outcome_levels = np.unique(outcome_arr) if outcome_arr is not None else np.asarray([])
     n_folds = int(folds_arr.max())
 
     # Nominal train sizes per test subset, transcribed from the R source
@@ -299,11 +304,17 @@ def iter_soak_splits(
                     # order-independent, seed-sensitive.
                     rng = np.random.default_rng([down_seed, s_i, fold, src_i])
                     kept: list[npt.NDArray[np.int64]] = []
-                    for y in np.unique(outcome_arr):
-                        stratum = train_idx[outcome_arr[train_idx] == y]
-                        keep_n = len(stratum) * target // own
-                        perm = rng.permutation(len(stratum))
-                        kept.append(stratum[perm[:keep_n]])
+                    train_subset = subset_arr[train_idx]
+                    train_outcome = outcome_arr[train_idx]
+                    for cell_subset in labels:
+                        for y in outcome_levels:
+                            in_cell = (train_subset == cell_subset) & (train_outcome == y)
+                            stratum = train_idx[in_cell]
+                            if len(stratum) == 0:
+                                continue
+                            keep_n = len(stratum) * target // own
+                            perm = rng.permutation(len(stratum))
+                            kept.append(stratum[perm[:keep_n]])
                     down_idx = np.sort(np.concatenate(kept)).astype(np.int64)
                     yield SoakSplit(
                         test_subset=str(s),
