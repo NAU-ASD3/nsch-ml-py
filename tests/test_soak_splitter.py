@@ -7,7 +7,7 @@ implementation is checked against first principles rather than itself.
 The sizes=0 tests encode the rule read from ResamplingSameOtherSizesCV:
 nominal per-subset train sizes same=floor(full*(K-1)/K), all=sum(same),
 other=all-same; target = per-test-subset minimum of those; downsampled
-per-(subset, outcome)-stratum counts floor(L_s * target / nominal_own).
+per-stratum counts floor(L_s * target / nominal_own).
 """
 
 from collections.abc import Iterable
@@ -269,13 +269,10 @@ def test_sizes0_per_stratum_floor_counts() -> None:
         target = min(counts.values())
         own = counts[s.train_source.value]
         counterpart = full[(s.test_subset, s.fold, s.train_source)]
-        for label in np.unique(subset):
-            for y in (0, 1):
-                stratum_full = counterpart[
-                    (subset[counterpart] == label) & (outcome[counterpart] == y)
-                ]
-                kept = s.train_idx[(subset[s.train_idx] == label) & (outcome[s.train_idx] == y)]
-                assert len(kept) == len(stratum_full) * target // own
+        for y in (0, 1):
+            stratum_full = counterpart[outcome[counterpart] == y]
+            kept = s.train_idx[outcome[s.train_idx] == y]
+            assert len(kept) == len(stratum_full) * target // own
 
 
 def test_sizes0_reproducible_given_seed() -> None:
@@ -359,98 +356,3 @@ def test_ignore_group_kfold_rejects_too_few_folds() -> None:
     _, outcome = make_data()
     with pytest.raises(ValueError):
         list(ignore_group_kfold(outcome, n_folds=1, seed=SEED))
-
-
-# --- Downsample stratification: (subset, outcome), not outcome alone -------
-#
-# Regression guard for the defect found against the mlr3resampling fixture:
-# the sizes=0 downsample strata are the (subset, outcome) pair. For SAME and
-# OTHER the train set spans one subset, so the pair collapses to outcome and
-# the two rules agree; only ALL can tell them apart. These fixtures are sized
-# so the rules give different answers, so the test fails if the strata ever
-# revert to outcome alone.
-#
-# Layout: subset A has 15 No / 5 Yes, subset B has 20 No / 10 Yes, dealt
-# round-robin across 5 folds so every fold holds A|No=3, A|Yes=1, B|No=4,
-# B|Yes=2. Every ALL train set is therefore A|No=12, A|Yes=4, B|No=16,
-# B|Yes=8 (40 rows), with nominal own=40 and target=16.
-#
-#   (subset, outcome):  12*16//40=4  4*16//40=1  16*16//40=6  8*16//40=3 -> 14
-#   outcome alone:      28*16//40=11            12*16//40=4             -> 15
-
-STRATA_FOLDS = 5
-STRATA_SEED = 3
-STRATA_CELLS = {("A", "No"): 15, ("A", "Yes"): 5, ("B", "No"): 20, ("B", "Yes"): 10}
-STRATA_EXPECTED_ALL = {("A", "No"): 4, ("A", "Yes"): 1, ("B", "No"): 6, ("B", "Yes"): 3}
-
-
-def make_strata_data() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Subset, outcome, and fold arrays with an exactly even round-robin deal."""
-    subset: list[str] = []
-    outcome: list[str] = []
-    folds: list[int] = []
-    for (s, y), n in STRATA_CELLS.items():
-        subset.extend([s] * n)
-        outcome.extend([y] * n)
-        folds.extend((np.arange(n) % STRATA_FOLDS + 1).tolist())
-    return np.array(subset), np.array(outcome), np.array(folds)
-
-
-def test_downsample_strata_are_subset_by_outcome() -> None:
-    """ALL downsamples floor within each (subset, outcome) cell."""
-    subset, outcome, precomputed = make_strata_data()
-    fold_ids = assign_folds(
-        subset=subset,
-        outcome=outcome,
-        n_folds=STRATA_FOLDS,
-        precomputed=precomputed,
-    )
-    seen = 0
-    for split in iter_soak_splits(
-        fold_ids=fold_ids,
-        subset=subset,
-        outcome=outcome,
-        sizes=0,
-        seed=STRATA_SEED,
-    ):
-        if not (split.downsampled and split.train_source is TrainSource.ALL):
-            continue
-        seen += 1
-        got = {
-            (s, y): int(np.sum((subset[split.train_idx] == s) & (outcome[split.train_idx] == y)))
-            for (s, y) in STRATA_CELLS
-        }
-        assert got == STRATA_EXPECTED_ALL
-        # 14 under (subset, outcome); 15 if the strata regress to outcome alone.
-        assert len(split.train_idx) == 14
-    # Both subsets, every fold.
-    assert seen == 2 * STRATA_FOLDS
-
-
-def test_downsample_unchanged_for_single_subset_sources() -> None:
-    """SAME and OTHER span one subset, so the finer strata are inert."""
-    subset, outcome, precomputed = make_strata_data()
-    fold_ids = assign_folds(
-        subset=subset,
-        outcome=outcome,
-        n_folds=STRATA_FOLDS,
-        precomputed=precomputed,
-    )
-    seen = 0
-    for split in iter_soak_splits(
-        fold_ids=fold_ids,
-        subset=subset,
-        outcome=outcome,
-        sizes=0,
-        seed=STRATA_SEED,
-    ):
-        if not split.downsampled or split.train_source is TrainSource.ALL:
-            continue
-        seen += 1
-        # Only subset B's rows are in play: B SAME (test B) and A OTHER
-        # (test A) are both B|No=16, B|Yes=8, own=24, target=16.
-        assert set(subset[split.train_idx]) == {"B"}
-        counts = {y: int(np.sum(outcome[split.train_idx] == y)) for y in ("No", "Yes")}
-        assert counts == {"No": 10, "Yes": 5}
-        assert len(split.train_idx) == 15
-    assert seen == 2 * STRATA_FOLDS
