@@ -14,6 +14,7 @@ so each version stays unique and the date stays honest.
 - Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg.
 - Added `docs/replication-equivalence.md`: what is identical between the two implementations, what differs and why, and the case for judging replication on contrast estimates rather than significance verdicts.
 - Ruled out two hypotheses for the verdict disagreements. Penalty family is not the cause (ridge, lasso and a 60-point ridge grid all land within 0.0006 of each other). Grid coarseness is not the cause either.
+- Added `analyses/r_vs_r.py`: clusters the ten available R runs of the same analysis by pairwise AUC distance. The `mlr3learners` version moves results by 0.0073 mean absolute AUC, against 0.0005 for the inner seed or the machine. Leaving the `cv.glmnet` seed unset is bit-identical to setting it to 1. Against R runs on the current build the Python port sits at 0.0021, four times the within-build floor. Two of four SOAK verdicts differ between R runs, so verdict agreement is not a standard the reference meets against itself.
 
 ## 2026.8.5 (PR#12)
 

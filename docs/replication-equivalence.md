@@ -1,74 +1,119 @@
-# Why the Python results differ from the R results, and what to do about it
+# Why the Python results differ from the R results
 
 Chris Reger, 6 August 2026. Working note for the ASD3 methods paper.
 
-## The short answer
+## Short version
 
-Everything upstream of model fitting is exact. The rows, the folds, the
-train and test membership on all 60 splits, the downsample counts on all 40
-downsampled splits: all verified index for index against the archived R
-instance. Nothing there is approximate.
+Everything upstream of model fitting matches exactly: rows, folds, train and
+test membership on all 60 splits, downsample counts on all 40 downsampled
+splits, all checked index for index against the archived R run.
 
-The differences come entirely from fitting the penalized model, and they are
-small. Per test fold, the Python and R AUCs sit within about seven
-thousandths of each other, with a mean difference near zero in all six
-subset-by-source cells.
+The fitted models differ, and the size of that difference only means
+something once you know how much the R analysis moves against itself. It
+turns out to move quite a lot, and for a reason worth knowing: **the
+`mlr3learners` version shifts the results by about 0.0073 mean absolute
+AUC**, while the `cv.glmnet` inner cross-validation seed shifts them by
+about 0.0005.
 
-That sounds like a clean result, and in one sense it is. The problem is that
-the effects SOAK exists to measure are also small. The All-minus-Same and
-Other-minus-Same contrasts on this dataset run around 0.0016. So the gap
-between two reasonable implementations is roughly four times the size of the
-signal we are testing for. Two of our four significance verdicts flip as a
-result, even though every estimate agrees.
+Against R runs on the same package build we now use, the Python port sits at
+**0.0021**. That is four times the floor set by runs that differ only by
+machine or seed, and about a third of the distance between two versions of R.
+
+None of this is small next to the effects being measured. The SOAK contrasts
+run around 0.0017, so build differences alone exceed the signal. Two of four
+significance verdicts flip between R runs, before Python enters at all.
 
 ## What is identical
 
-| | Verified against |
+| | Checked against |
 |---|---|
 | 46,010 rows, 364 features | `data_Classif/NSCH_autism.csv` |
 | Fold assignment | `nsch_autism_folds.csv`, used directly |
 | Train and test rows, 60 full splits | `nsch_autism_iterations_long.csv`, exact |
 | Downsample sizes and per-stratum counts, 40 splits | same, exact |
 
-Row membership of the downsampled train sets does not match and cannot,
-since R's `sample()` and NumPy's generator are different. The rule matches;
-the draw does not. Only the full splits are used for the model comparison,
-so this does not enter.
+Row membership of downsampled train sets does not match and never could,
+since R's `sample()` and NumPy's generator are different machines. The rule
+matches; the draw does not. Only full splits feed the model comparison.
 
-## What differs, in rough order of how much it matters
+## How much does R disagree with itself?
 
-**Penalty selection.** `cv.glmnet` builds its own lambda path from the data,
-about 100 values, runs an internal 10-fold cross-validation, scores by
-binomial deviance, and predicts at `lambda.1se`. We run 5-fold
-cross-validation over a fixed 60-point grid of `C`, score by log loss, and
-apply the same one-standard-error rule to that grid. Different candidate
-penalties, different inner folds, different scoring scale. The two sides are
-not the same model computed twice; they are two models selected by similar
-but distinct procedures.
+Ten R result files now exist for the same analysis: five from February and
+March under different backends and machines, one from batchtools, three run
+on 6 August varying only the `cv.glmnet` seed, and one on 6 August with the
+seed left unset. Clustering all 45 pairwise distances gives clear structure
+rather than a spread.
 
-**Optimizer.** glmnet uses cyclical coordinate descent with its own
-convergence criteria. We use L-BFGS. Even at an identical penalty the fitted
-coefficients differ slightly.
+| | Runs | Within-cluster mean |
+|---|---|---|
+| Cluster 1, Feb/March | local, local_desktop, local_laptop, mpi, proj | 0.000485 |
+| Cluster 2, 6 August | seed1, seed2, seed3, unseeded | 0.000373 |
+| Cluster 3 | batchtools | single member |
+
+| Between | Mean absolute AUC difference |
+|---|---|
+| Cluster 1 to cluster 2 | 0.007299 |
+| Cluster 1 to batchtools | 0.007908 |
+| Cluster 2 to batchtools | 0.008437 |
+| **Python to cluster 2** | **0.002095** |
+| Python to cluster 1 | 0.007114 |
+
+Three things fall out.
+
+**The inner seed is worth about 0.0005.** Runs differing only in that seed
+agree as closely as runs on different machines.
+
+**Leaving the seed unset is identical to setting it to 1.** `NSCH_unseeded`
+and `NSCH_seed1` agree on all 60 AUCs to the last bit. The learner defaults
+to 1, which means the February runs were effectively seeded all along and
+the seeding change explains nothing.
+
+**The package version is worth about 0.0073.** With seeding ruled out, the
+one remaining difference between February's runs and August's is
+`mlr3learners`, updated to 0.14.0.9000 (the `tdhock/mlr3learners@cv_glmnet_seed`
+fork) when we needed the seed parameter exposed. That is the whole
+cluster separation, and it is larger than the effects the study reports.
+
+Worth telling Toby about, independent of anything to do with our port.
+
+## Where the port actually sits
+
+Against R runs on the build we are now using, Python is 0.0021 away. That is
+four times the within-cluster floor of 0.00047, so there is real
+implementation distance and we are not at the limit of what is achievable.
+But it is roughly a third of the 0.0073 that separates two versions of the
+reference from each other.
+
+Put plainly: our reimplementation agrees with the current R analysis more
+closely than the current R analysis agrees with its own February self.
+
+## What differs, and why
+
+**Penalty selection, which is most of it.** `cv.glmnet` derives a lambda
+path from the data, roughly 100 values, runs an internal 10-fold
+cross-validation, scores by binomial deviance, and predicts at
+`lambda.1se`. We run 5-fold cross-validation over a fixed 60-point grid of
+`C`, score by log loss, and apply the same one-standard-error rule. Different
+candidates, different inner folds, different scoring scale. These are two
+models chosen by similar but distinct procedures, not one model computed
+twice.
+
+**Optimizer.** glmnet uses cyclical coordinate descent. We use L-BFGS. At an
+identical penalty the fitted coefficients still differ slightly.
 
 **Parameterization.** glmnet minimizes `(1/n) * deviance + lambda *
-penalty`; scikit-learn minimizes `C * loss + penalty`. So `lambda` is
-roughly `1/(nC)` and our grid aligns only approximately with theirs.
+penalty`; scikit-learn minimizes `C * loss + penalty`. So lambda is roughly
+`1/(nC)`, and the grids align only approximately.
 
-**Inner cross-validation randomization.** Neither side's inner folds are
-matched to the other's. They cannot be, for the same reason the downsample
-draws cannot.
+Two candidate explanations were tested and ruled out. Penalty family is not
+the cause: ridge, lasso, and a 60-point ridge grid put the 2019
+All-minus-Same estimate within 0.0006 of each other. Grid coarseness is not
+the cause either: going from 12 penalty values to 60 changed the selected
+penalty by about 1.35x and moved nothing of substance.
 
-Two things worth ruling out, because both were checked. Alpha is not the
-cause: ridge, lasso, and a much finer ridge grid all put the Python
-All-minus-Same estimate for 2019 within 0.0006 of each other. Grid
-coarseness is not the cause either: going from 12 penalty values to 60
-changed the selected penalty by about 1.35x across splits and moved nothing
-of substance.
+## Size of the difference, split by split
 
-## What the differences look like
-
-Against the archived R run, per subset and train source, paired t on 9
-degrees of freedom:
+Paired t on 9 degrees of freedom against `NSCH_proj` (cluster 1):
 
 | Test subset | Train source | Mean AUC difference | 95% interval |
 |---|---|---|---|
@@ -79,18 +124,19 @@ degrees of freedom:
 | 2020 | Other | +0.00157 | (−0.00658, +0.00972) |
 | 2020 | All | +0.00069 | (−0.00646, +0.00784) |
 
-No systematic bias in either direction. Every interval sits inside a
-plus-or-minus 0.01 margin.
+No systematic lean, every interval inside a plus-or-minus 0.01 margin. These
+would tighten against a cluster 2 reference; that comparison has not been
+rerun.
 
-There is also an external check. Hocking et al. report mean AUC on the 2020
-test subset of 0.9670 training on All and 0.9658 training on Same. We get
-0.9679 and 0.9664. The paper rounds to four places, so agreement near a
-thousandth is as much as this comparison can demonstrate, and we have it.
+There is also an outside check. Hocking et al. report mean AUC on the 2020
+test subset of 0.9670 training on All and 0.9658 on Same. We get 0.9679 and
+0.9664; `NSCH_proj` gives 0.9672 and 0.9658. The paper rounds to four
+places, so agreement near a thousandth is the most this can show.
 
-## Where the trouble is
+## The criterion problem
 
-Running Toby's two-sided paired t on 9 degrees of freedom, per test subset,
-on both implementations:
+Toby's two-sided paired t on 9 degrees of freedom, per test subset, on both
+implementations:
 
 | Contrast | Subset | R estimate | R p | Python estimate | Python p |
 |---|---|---|---|---|---|
@@ -99,62 +145,56 @@ on both implementations:
 | Other − Same | 2019 | +0.00176 | 0.0619 | +0.00079 | 0.5531 |
 | Other − Same | 2020 | −0.00168 | 0.0365 | −0.00073 | 0.1654 |
 
-Signs agree everywhere. Estimates are close. Three of the four significance
-verdicts match; the fourth, 2020 Other-minus-Same, has R rejecting at 0.0365
-and Python not rejecting at 0.1654.
+Three of four verdicts match. Correcting for multiplicity, which we should,
+since this is four tests and the full analysis will run a couple of hundred:
 
-Now correct for multiplicity, which we should, since these are four tests
-and the full analysis will run a couple of hundred. Under Bonferroni at four
-tests, R's 0.0365 no longer clears the bar either, so that disagreement
-disappears and 2019 All-minus-Same becomes the one that differs. Under
-Benjamini-Hochberg the count drops further.
+| Adjustment | Verdicts agreeing | Which one disagrees |
+|---|---|---|
+| None | 3 of 4 | Other − Same, 2020 |
+| Bonferroni | 3 of 4 | **All − Same, 2019** |
+| Benjamini-Hochberg | 2 of 4 | both of the above |
 
-The disagreement does not go away under correction. It moves. Which
-comparison disagrees depends on which correction we choose, and choosing
-one is a judgement call we make after seeing the data.
+The count barely moves. The comparison does. Which result disagrees depends
+on a correction chosen after seeing the data.
 
-## The criterion I would propose
+**And R fails this criterion against itself.** Across the ten R runs, two of
+four contrasts get different verdicts depending on which run you use. The
+February `mpi` run calls 2019 Other-minus-Same significant at 0.0196 while
+four sibling runs that agree with it to 0.0005 on AUC call it null between
+0.059 and 0.107. One August run landed at 0.0502, two ten-thousandths from
+flipping.
 
-Verdict agreement fails as a replication criterion for a reason that has
-nothing to do with the quality of the port. When the effect is 0.0016, the
-implementation gap is 0.0067, and there are ten folds, a p-value near 0.05
-is a coin toss. We saw exactly that: 2019 All-minus-Same came out at 0.0544
-under one configuration and 0.0326 under another, from estimates that
-differed by one hundred-thousandth.
+Verdict agreement is not a standard the reference analysis meets against
+itself. It cannot reasonably be required of a port.
 
-Estimate agreement holds through all of it. In every configuration we ran,
-R's contrast estimate sits inside Python's confidence interval and Python's
-sits inside R's. That is stable, it does not depend on a multiplicity
-choice, and it is the claim the data actually support.
+## What I would propose
 
-So: report the t-test p-values as Toby's method prescribes, since they are
-the right tool for the scientific question. Judge the replication on
-whether the contrast estimates agree within their intervals. Those are
-different questions and they deserve different instruments.
+Report the paired t-test p-values, since they answer the scientific question
+and they are the method the SOAK paper prescribes. Judge whether the port
+reproduces the analysis on whether contrast estimates agree within their
+intervals.
 
-## The calibration experiment we are missing
+On that criterion the port passes 4 of 4: in every comparison R's estimate
+falls inside Python's interval and Python's falls inside R's. One is close.
+On 2020 Other-minus-Same, R's −0.00168 clears the edge of Python's interval,
+which runs to −0.00182, by fourteen hundred-thousandths.
 
-The honest benchmark is not "how close is Python to R." It is "how close is
-R to itself." `cv.glmnet`'s inner cross-validation is randomized, so
-re-running the R analysis under a different seed produces a different set of
-selected penalties and a different set of AUCs. If R-versus-R variation
-across seeds is comparable to the R-versus-Python variation we measured,
-then the port is at the floor and no amount of further work will close the
-gap.
+**And pin the package version.** A build change moves these results further
+than the effects being reported. Whatever tolerance we adopt is meaningless
+without recording which `mlr3learners` produced the reference.
 
-That run is cheap on the R side and would settle the question. I would like
-to do it before the methods paper states a tolerance.
+## What we do not know yet
 
-## One thing to flag about the manuscript
+Why batchtools sits apart from both clusters. It differs from cluster 1 by
+0.0079 despite sharing February's build, so execution backend contributes
+something on its own.
 
-Vince's SOAK section does not use a significance test. It reports that
-standard deviation bands overlap and concludes from that overlap that a gap
-is not statistically significant. Applying the paired t-test from the SOAK
-paper is therefore an addition to the published analysis rather than a
-reproduction of it, and it may reach different conclusions on temporal
-drift and on the AI/AN fairness comparison. Those differences would be
-findings, not replication failures, and we should say so plainly when they
-come up.
+Whether the same structure holds for other learners. Everything here is
+`cv_glmnet`. Boosted trees have their own randomization and may behave
+differently.
+
+Whether the per-split intervals tighten against a cluster 2 reference. They
+were computed against `NSCH_proj` and have not been rerun.
 
 ## Reproducing
 
@@ -164,10 +204,13 @@ come up.
         --results analyses/glmnet_replication_grid60.csv --auc-col auc_1se
     uv run python analyses/soak_criteria.py \
         --results analyses/glmnet_replication_grid60.csv --auc-col auc_1se
+    uv run python analyses/r_vs_r.py \
+        --reproduce-dir /path/to/reproduce-soak-nsch
 
-The fixture and the R reference live outside the repository; both paths come
-from environment variables. The 60-split run takes about eight minutes with
-ridge and L-BFGS. The lasso equivalent took eleven and a half hours on the
-same machine, which is worth recording on its own: glmnet's coordinate
-descent handles this problem in minutes where scikit-learn's saga solver
-needs most of a day.
+The R runs come from `NSCH_seed_variation.R` and `NSCH_unseeded_check.R` in
+the reproduce-soak-nsch checkout, about 25 minutes each on 8 cores.
+
+The 60-split Python run takes about eight minutes with ridge and L-BFGS. The
+lasso equivalent took eleven and a half hours on the same machine, which is
+worth recording: glmnet's coordinate descent handles this problem in minutes
+where scikit-learn's saga solver needs most of a day.
