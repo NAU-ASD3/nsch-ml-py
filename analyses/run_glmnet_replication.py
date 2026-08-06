@@ -77,7 +77,10 @@ DEFAULT_REFERENCE = (
 N_FOLDS = 10
 SEED = 1
 EXPECTED_ROWS = 46010
-N_CS = 12
+# glmnet walks ~100 lambdas over two or three decades. sklearn's integer Cs
+# spans 1e-4 to 1e4, so 12 points leaves cells ~5x wide -- far too coarse to
+# see the penalty shift between training on 16k rows and 41k.
+N_CS = np.logspace(-4, 0, 60)
 INNER_CV = 5
 
 

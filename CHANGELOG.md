@@ -8,6 +8,13 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.6 (PR#NN)
+
+- Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with the two summary figures. Mean AUC on the 2020 test subset comes out at 0.9679 training on All and 0.9664 on Same, against 0.9670 and 0.9658 in the published paper.
+- Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg.
+- Added `docs/replication-equivalence.md`: what is identical between the two implementations, what differs and why, and the case for judging replication on contrast estimates rather than significance verdicts.
+- Ruled out two hypotheses for the verdict disagreements. Penalty family is not the cause (ridge, lasso and a 60-point ridge grid all land within 0.0006 of each other). Grid coarseness is not the cause either.
+
 ## 2026.8.5 (PR#12)
 
 - Added `analyses/run_glmnet_replication.py` and `analyses/probe_glmnet_split.py`: penalized logistic regression fitted on all 60 non-downsampled SOAK splits, compared against `classif.cv_glmnet` in `reproduce-soak-nsch/results/2026-03-06/NSCH_proj.csv`. All 60 splits match the R reference. The mean paired difference in test AUC is +0.00017 across the 20 test folds (sd 0.00865, sem 0.00193, t = 0.09), so there is no detectable systematic difference in discrimination.
