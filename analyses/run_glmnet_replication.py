@@ -228,7 +228,7 @@ def main() -> int:
             rec[f"d_auc_{label}"] = float(rec[f"auc_{label}"]) - r[0] if r else None  # type: ignore[arg-type]
         rows.append(rec)
 
-        d = (
+        delta_txt = (
             f"  d_min {rec['d_auc_min']:+.5f}  d_1se {rec['d_auc_1se']:+.5f}"
             if r
             else "  [no R match]"
@@ -238,7 +238,7 @@ def main() -> int:
             f"{split.train_source.value:5s} f{split.fold:<2d} "
             f"{'down' if split.downsampled else 'full'}  "
             f"C {c_min:.4g}/{c_1se:.4g} (idx {i_min}/{i_1se})  "
-            f"auc {rec['auc_min']:.5f}/{rec['auc_1se']:.5f}{d}"
+            f"auc {rec['auc_min']:.5f}/{rec['auc_1se']:.5f}{delta_txt}"
         )
 
     out = pl.DataFrame(rows)

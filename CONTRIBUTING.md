@@ -52,6 +52,18 @@ A green local run is the gate for opening a PR.
 - **Imports are sorted by ruff.** Don't hand-curate import order.
 - **Comment generously, especially the "why."** A comment that explains a non-obvious choice (a quirk of the original R analysis, a glmnet-versus-sklearn difference) is more valuable than one that restates the code.
 
+### Names
+
+Names describe the value they hold. Single letters are reserved for loop
+indices over a range and for the two established abbreviations `df` and
+`ax`. Everything else gets a word: `distance` rather than `d`, `n_pairs`
+rather than `n`, `train_source` rather than `src`.
+
+A name used twice in one function must mean the same thing both times.
+Reusing a short name for two different types is how `ypos` ended up as both
+an array and a list, and how `denom` ended up as both an integer and a
+string. Both survived review and were caught by mypy rather than by reading.
+
 ## Architecture invariants
 
 These are not preferences. Violations are bugs:
