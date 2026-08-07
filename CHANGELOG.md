@@ -8,7 +8,7 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
-## 2026.8.6 (PR#NN)
+## 2026.8.6 (PR#13)
 
 - Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with two summary figures. Mean AUC on the 2020 test subset agrees with the published figures to about a thousandth.
 - Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg. Contrast estimates agree in every comparison; significance verdicts do not, and which one disagrees depends on the multiplicity adjustment.
