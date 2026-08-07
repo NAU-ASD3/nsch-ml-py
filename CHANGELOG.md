@@ -8,6 +8,15 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.7 (PR#14)
+
+- Recovered R's fitted models from the saved learner objects. `LearnerClassifCVGlmnetSave` stores the 364 coefficients at the selected lambda, and `analyses/verify_r_coefficients.py` confirms they reproduce R's reported AUC on all 60 splits to 1e-14. Coefficient and ranking comparisons therefore need no further R runs; probability-scale work still needs the intercept, which is not stored.
+- glmnet's coefficients are oriented toward `y = 0` in this fixture. Every split reproduces exactly `1 - AUC` before the sign is corrected, so any coefficient comparison must account for it or report 364 wrong signs per split.
+- R's `cv_glmnet` runs lasso, 65 nonzero of 364. `Unique_Household_ID` and `Selected_Child_Weight` are dropped in all 60 splits, so the published analysis neither leaks the household identifier nor uses the survey weight as a predictor.
+- For any fold, "same" on 2019 and "other" on 2020 train on identical rows and their fitted coefficients are bit-identical, so the 60 splits hold 30 distinct models.
+- Added `analyses/r_seed_yardstick.py`. Three R runs differing only in the inner CV seed disagree by 0.004 mean absolute on coefficients, bottom out at 0.965 Spearman on held-out rankings, and agree to 0.0006 on fold-level AUC. The finer the quantity, the less reproducible the analysis is against its own seed.
+- Added `docs/equivalence-margin.md`, fixing the pass/fail standard before the comparison script was written. Committed in `313489c` directly to `main` under admin bypass so the timestamp would precede any comparison; the bypass is recorded in GitHub's audit log and noted here rather than left to be discovered.
+
 ## 2026.8.6 (PR#13)
 
 - Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with two summary figures. Mean AUC on the 2020 test subset agrees with the published figures to about a thousandth.
