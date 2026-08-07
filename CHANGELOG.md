@@ -22,6 +22,8 @@ so each version stays unique and the date stays honest.
 - Added `tests/test_analyses.py`: 23 tests covering the Benjamini-Hochberg adjustment and the run clustering, both of which feed stated results.
 - `pyproject.toml`: removed lint and mypy configuration referencing rule families the repo does not select, extended mypy to `analyses` and `tests`, added overrides for scipy and matplotlib.
 - `.pre-commit-config.yaml`: ruff and mypy now run through `uv run` rather than a pinned hook binary and a hardcoded path. The pinned ruff had drifted ten minor versions behind the dev dependency; the mypy hook's `src/` argument overrode `files` in `pyproject.toml`, so it had never checked `analyses/` or `tests/`.
+- Reran the comparison against `NSCH_seed1`, a reference from the installed `mlr3learners` build, and made it primary; `analyses/glmnet_replication_seed1.csv` is committed alongside the earlier `grid60` file, which used a February reference. The measured implementation gap falls from about four times the size of the SOAK contrasts to roughly one to one.
+- The criterion question is deferred rather than answered. Three candidates were evaluated on fold-level AUC and each fails differently; the doc now records that evidence and names the plan of record, a prediction-level comparison against a margin fixed before it is computed. One cell (2020 Other) shows a raw p of 0.012 that does not survive multiplicity correction.
 
 ## 2026.8.5 (PR#12)
 
