@@ -10,11 +10,18 @@ so each version stays unique and the date stays honest.
 
 ## 2026.8.6 (PR#NN)
 
-- Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with the two summary figures. Mean AUC on the 2020 test subset comes out at 0.9679 training on All and 0.9664 on Same, against 0.9670 and 0.9658 in the published paper.
-- Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg.
-- Added `docs/replication-equivalence.md`: what is identical between the two implementations, what differs and why, and the case for judging replication on contrast estimates rather than significance verdicts.
-- Ruled out two hypotheses for the verdict disagreements. Penalty family is not the cause (ridge, lasso and a 60-point ridge grid all land within 0.0006 of each other). Grid coarseness is not the cause either.
-- Added `analyses/r_vs_r.py`: clusters the ten available R runs of the same analysis by pairwise AUC distance. The `mlr3learners` version moves results by 0.0073 mean absolute AUC, against 0.0005 for the inner seed or the machine. Leaving the `cv.glmnet` seed unset is bit-identical to setting it to 1. Against R runs on the current build the Python port sits at 0.0021, four times the within-build floor. Two of four SOAK verdicts differ between R runs, so verdict agreement is not a standard the reference meets against itself.
+- Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with two summary figures. Mean AUC on the 2020 test subset agrees with the published figures to about a thousandth.
+- Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg. Contrast estimates agree in every comparison; significance verdicts do not, and which one disagrees depends on the multiplicity adjustment.
+- Added `analyses/r_vs_r.py`: clusters the ten available R runs of the same analysis by pairwise AUC distance. The `mlr3learners` build moves results by an order of magnitude more than the inner seed or the machine does, and two of four SOAK verdicts differ between R runs.
+- Added `docs/replication-equivalence.md`, which is the single source for the equivalence numbers. Scripts point at it rather than restating figures that go stale.
+- Widened the penalty grid in `run_glmnet_replication.py` from 12 points to 60. Together with the lasso run kept in `glmnet_replication_lasso.csv`, this rules out penalty family and grid coarseness as causes of the verdict disagreements.
+- Fixed the implementation half-width in `soak_criteria.py`, which used the upper interval bound rather than `(hi - lo) / 2` and so overstated the ratio against the contrast size.
+- Fixed stale defaults in `soak_ttests.py`, which pointed at the pre-grid-widening results file and the wrong AUC column, so running it as documented reproduced numbers the doc contradicted.
+- Both scripts now warn when a results file has fewer folds than expected, instead of silently comparing a partial run against a complete one.
+- Renamed throughout `analyses/` for descriptive names; single letters are now reserved for range indices and the `df`/`ax` conventions. The convention is recorded in `CONTRIBUTING.md`. Reusing short names for two types is what produced the type collisions this pass fixed.
+- Added `tests/test_analyses.py`: 23 tests covering the Benjamini-Hochberg adjustment and the run clustering, both of which feed stated results.
+- `pyproject.toml`: removed lint and mypy configuration referencing rule families the repo does not select, extended mypy to `analyses` and `tests`, added overrides for scipy and matplotlib.
+- `.pre-commit-config.yaml`: ruff and mypy now run through `uv run` rather than a pinned hook binary and a hardcoded path. The pinned ruff had drifted ten minor versions behind the dev dependency; the mypy hook's `src/` argument overrode `files` in `pyproject.toml`, so it had never checked `analyses/` or `tests/`.
 
 ## 2026.8.5 (PR#12)
 
