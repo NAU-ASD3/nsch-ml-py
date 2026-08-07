@@ -8,6 +8,23 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.6 (PR#13)
+
+- Added `analyses/soak_ttests.py`: the two-sided paired t on 9 degrees of freedom from Hocking et al., applied per test subset to both the R reference and our results, with two summary figures. Mean AUC on the 2020 test subset agrees with the published figures to about a thousandth.
+- Added `analyses/soak_criteria.py`: compares three candidate replication criteria and recomputes verdict agreement under Bonferroni and Benjamini-Hochberg. Contrast estimates agree in every comparison; significance verdicts do not, and which one disagrees depends on the multiplicity adjustment.
+- Added `analyses/r_vs_r.py`: clusters the ten available R runs of the same analysis by pairwise AUC distance. The `mlr3learners` build moves results by an order of magnitude more than the inner seed or the machine does, and two of four SOAK verdicts differ between R runs.
+- Added `docs/replication-equivalence.md`, which is the single source for the equivalence numbers. Scripts point at it rather than restating figures that go stale.
+- Widened the penalty grid in `run_glmnet_replication.py` from 12 points to 60. Together with the lasso run kept in `glmnet_replication_lasso.csv`, this rules out penalty family and grid coarseness as causes of the verdict disagreements.
+- Fixed the implementation half-width in `soak_criteria.py`, which used the upper interval bound rather than `(hi - lo) / 2` and so overstated the ratio against the contrast size.
+- Fixed stale defaults in `soak_ttests.py`, which pointed at the pre-grid-widening results file and the wrong AUC column, so running it as documented reproduced numbers the doc contradicted.
+- Both scripts now warn when a results file has fewer folds than expected, instead of silently comparing a partial run against a complete one.
+- Renamed throughout `analyses/` for descriptive names; single letters are now reserved for range indices and the `df`/`ax` conventions. The convention is recorded in `CONTRIBUTING.md`. Reusing short names for two types is what produced the type collisions this pass fixed.
+- Added `tests/test_analyses.py`: 23 tests covering the Benjamini-Hochberg adjustment and the run clustering, both of which feed stated results.
+- `pyproject.toml`: removed lint and mypy configuration referencing rule families the repo does not select, extended mypy to `analyses` and `tests`, added overrides for scipy and matplotlib.
+- `.pre-commit-config.yaml`: ruff and mypy now run through `uv run` rather than a pinned hook binary and a hardcoded path. The pinned ruff had drifted ten minor versions behind the dev dependency; the mypy hook's `src/` argument overrode `files` in `pyproject.toml`, so it had never checked `analyses/` or `tests/`.
+- Reran the comparison against `NSCH_seed1`, a reference from the installed `mlr3learners` build, and made it primary; `analyses/glmnet_replication_seed1.csv` is committed alongside the earlier `grid60` file, which used a February reference. The measured implementation gap falls from about four times the size of the SOAK contrasts to roughly one to one.
+- The criterion question is deferred rather than answered. Three candidates were evaluated on fold-level AUC and each fails differently; the doc now records that evidence and names the plan of record, a prediction-level comparison against a margin fixed before it is computed. One cell (2020 Other) shows a raw p of 0.012 that does not survive multiplicity correction.
+
 ## 2026.8.5 (PR#12)
 
 - Added `analyses/run_glmnet_replication.py` and `analyses/probe_glmnet_split.py`: penalized logistic regression fitted on all 60 non-downsampled SOAK splits, compared against `classif.cv_glmnet` in `reproduce-soak-nsch/results/2026-03-06/NSCH_proj.csv`. All 60 splits match the R reference. The mean paired difference in test AUC is +0.00017 across the 20 test folds (sd 0.00865, sem 0.00193, t = 0.09), so there is no detectable systematic difference in discrimination.

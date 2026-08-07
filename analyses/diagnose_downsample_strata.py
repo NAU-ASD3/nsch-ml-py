@@ -27,6 +27,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import polars as pl
 
 DEFAULT_FIXTURE = Path.home() / "Documents/NAU/Grad/Research/ADSI/soak_fixture"
@@ -94,10 +95,15 @@ def main() -> int:
         for s, src, f, ids in grouped.iter_rows()
     }
 
-    schemes = {
-        "outcome only": lambda idx: [outcome[idx]],
-        "subset x outcome": lambda idx: [subset[idx], outcome[idx]],
-    }
+    def key_outcome(idx: npt.NDArray[np.int64]) -> list[npt.NDArray[np.str_]]:
+        """Stratify on the outcome alone."""
+        return [outcome[idx]]
+
+    def key_subset_outcome(idx: npt.NDArray[np.int64]) -> list[npt.NDArray[np.str_]]:
+        """Stratify on the (subset, outcome) pair."""
+        return [subset[idx], outcome[idx]]
+
+    schemes = {"outcome only": key_outcome, "subset x outcome": key_subset_outcome}
     modes = ["floor", "round", "largest-remainder"]
     denoms = ["nominal", "actual"]
 
@@ -120,7 +126,7 @@ def main() -> int:
                     actual = len(actual_idx)
                     own = nominal[s][src]
                     target = min(nominal[s].values())
-                    denom = own if denom_name == "nominal" else actual
+                    denom_value = own if denom_name == "nominal" else actual
 
                     parts = keyer(actual_idx)
                     combo = np.array(
@@ -134,7 +140,7 @@ def main() -> int:
                     cells = sorted(set(combo.tolist()))
                     sizes = [int(np.sum(combo == c)) for c in cells]
                     r_counts = [int(np.sum(r_combo == c)) for c in cells]
-                    pred = keeps(sizes, target, denom, mode)
+                    pred = keeps(sizes, target, denom_value, mode)
 
                     for c, p, r in zip(cells, pred, r_counts, strict=True):
                         cell_total += 1
