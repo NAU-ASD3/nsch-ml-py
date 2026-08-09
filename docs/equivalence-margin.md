@@ -21,14 +21,14 @@ same outer folds. Whatever they disagree about is noise in the reference,
 and nothing we write in Python can be closer to one of them than they are to
 each other.
 
-| | seed1 vs seed2 | seed1 vs seed3 | seed2 vs seed3 |
-|---|---|---|---|
-| Coefficient mean absolute difference | 0.00252 | 0.00430 | 0.00391 |
-| Coefficient max absolute difference | 0.224 | 0.377 | 0.292 |
-| Features where selection differs | 1.4% | 2.3% | 2.0% |
-| Held-out ranking, worst Spearman | 0.9654 | 0.9678 | 0.9678 |
-| Held-out ranking, mean Spearman | 0.9962 | 0.9920 | 0.9946 |
-| Fold-level AUC, mean absolute difference | 0.00028 | 0.00059 | 0.00050 |
+|                                          | seed1 vs seed2 | seed1 vs seed3 | seed2 vs seed3 |
+| ---------------------------------------- | -------------- | -------------- | -------------- |
+| Coefficient mean absolute difference     | 0.00252        | 0.00430        | 0.00391        |
+| Coefficient max absolute difference      | 0.224          | 0.377          | 0.292          |
+| Features where selection differs         | 1.4%           | 2.3%           | 2.0%           |
+| Held-out ranking, worst Spearman         | 0.9654         | 0.9678         | 0.9678         |
+| Held-out ranking, mean Spearman          | 0.9962         | 0.9920         | 0.9946         |
+| Fold-level AUC, mean absolute difference | 0.00028        | 0.00059        | 0.00050        |
 
 Two things in that table are worth sitting with.
 
@@ -51,13 +51,13 @@ against its own seed.
 
 ## The margins
 
-| Quantity | Reference spread | Margin | Gated |
-|---|---|---|---|
-| Spearman of held-out scores, per split | 0.965 floor | **at least 0.95** | yes |
-| Fold-level AUC, mean absolute difference | 0.00059 | **at most 0.002** | yes |
-| Probability-scale MAD | not yet measured | **at most 0.01**, provisional | yes, once available |
-| Coefficient mean absolute difference | 0.0043 | none | reported only |
-| Feature selection agreement | 97.7% | none | reported only |
+| Quantity                                 | Reference spread | Margin                        | Gated               |
+| ---------------------------------------- | ---------------- | ----------------------------- | ------------------- |
+| Spearman of held-out scores, per split   | 0.965 floor      | **at least 0.95**             | yes                 |
+| Fold-level AUC, mean absolute difference | 0.00059          | **at most 0.002**             | yes                 |
+| Probability-scale MAD                    | not yet measured | **at most 0.01**, provisional | yes, once available |
+| Coefficient mean absolute difference     | 0.0043           | none                          | reported only       |
+| Feature selection agreement              | 97.7%            | none                          | reported only       |
 
 The port passes if it clears every gated line on every split. Failing one is
 a failure, not an invitation to look for a fourth measure that passes.
@@ -136,6 +136,17 @@ Fixed before any comparison:
   signs per split.
 - All 364 features, including `Selected_Child_Weight` and
   `Unique_Household_ID`, both of which R's lasso drops in all 60 splits.
+- Three label conventions are in play and none is visible in an AUC. The
+  design's `y` holds "Yes" and "No" rather than 1 and 0. mlr3 assigned "No"
+  as the positive class, so R's saved probabilities are one minus the
+  probability of the outcome, and glmnet's coefficients point the same way.
+  scikit-learn's `roc_auc_score`, given string labels, takes the
+  lexicographically last as positive, which is "Yes". They compose correctly
+  once the probability is inverted; each would independently invert a
+  probability-scale comparison while leaving every AUC untouched.
+- R's predicted probabilities come from `NSCH_seed1_predictions_repaired.csv`,
+  138,030 held-out rows over the 60 splits, verified against R's own AUC to
+  1e-14 and against the 3.05% outcome prevalence.
 
 ## If it fails
 
