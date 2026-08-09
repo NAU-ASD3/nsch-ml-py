@@ -11,12 +11,10 @@ are. Three questions in particular:
   3. Which features carry the most weight, and do they look like the
      published Figure 4 predictors?
 
-Signs are flipped on load. glmnet oriented its coefficients toward y = 0,
-verified by every split reproducing exactly 1 - AUC before the correction,
-so a positive weight here means "raises the probability of the outcome".
-
-Aggregations go through numpy rather than polars' own reducers, whose return
-types are a union wide enough that mypy cannot narrow them to float.
+Signs are flipped on load. glmnet oriented its coefficients toward the
+negative class, verified by every split reproducing exactly 1 - AUC before
+the correction, so a positive weight here means "raises the probability of
+the outcome".
 
 Run from the repository root::
 
@@ -29,8 +27,8 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import cast
 
-import numpy as np
 import polars as pl
 
 WATCH_FEATURES = (
@@ -52,7 +50,7 @@ def main() -> int:
         print(f"FAIL: {path} not found", file=sys.stderr)
         return 2
 
-    # Negate: glmnet's coefficients point toward y = 0 in this fixture.
+    # Negate: glmnet's coefficients point toward the negative class here.
     coefficients = pl.read_csv(path).with_columns((-pl.col("weight")).alias("weight"))
     n_splits = coefficients.select(["test_subset", "train_source", "fold"]).unique().height
     n_features = coefficients["feature"].n_unique()
@@ -79,12 +77,13 @@ def main() -> int:
         if rows.height == 0:
             print(f"{feature:<26}{'not in design':>16}")
             continue
-        weights = rows["weight"].to_numpy().astype(np.float64)
-        nonzero = weights[weights != 0]
-        mean_weight = float(nonzero.mean()) if nonzero.size else 0.0
-        max_abs = float(np.abs(weights).max())
+        nonzero = rows.filter(pl.col("weight") != 0)
+        # The weight column is Float64 from the CSV, so cast rather than
+        # checking; see the Polars note in CONTRIBUTING.md.
+        mean_weight = cast("float", nonzero["weight"].mean()) if nonzero.height else 0.0
+        max_abs = cast("float", rows["weight"].abs().max())
         print(
-            f"{feature:<26}{nonzero.size:>10} of {rows.height:<3}"
+            f"{feature:<26}{nonzero.height:>10} of {rows.height:<3}"
             f"{mean_weight:>14.5f}{max_abs:>14.5f}"
         )
 
