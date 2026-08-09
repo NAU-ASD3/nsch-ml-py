@@ -16,6 +16,13 @@ so each version stays unique and the date stays honest.
 - For any fold, "same" on 2019 and "other" on 2020 train on identical rows and their fitted coefficients are bit-identical, so the 60 splits hold 30 distinct models.
 - Added `analyses/r_seed_yardstick.py`. Three R runs differing only in the inner CV seed disagree by 0.004 mean absolute on coefficients, bottom out at 0.965 Spearman on held-out rankings, and agree to 0.0006 on fold-level AUC. The finer the quantity, the less reproducible the analysis is against its own seed.
 - Added `docs/equivalence-margin.md`, fixing the pass/fail standard before the comparison script was written. Committed in `313489c` directly to `main` under admin bypass so the timestamp would precede any comparison; the bypass is recorded in GitHub's audit log and noted here rather than left to be discovered.
+- Recovered R's fitted models from the saved learner objects. `analyses/verify_r_coefficients.py` confirms the stored coefficients reproduce R's reported AUC on all 60 splits, so coefficient and ranking comparisons need no further R runs.
+- Recovered R's predicted probabilities and intercept. `proj_grid` takes `save_pred`, which defaults to `FALSE`, and the package's default glmnet saver drops the intercept; both are one argument each.
+- Added `analyses/repair_r_predictions.py`, which corrects two class-label conventions in R's export and verifies the result against both R's AUC and the outcome prevalence.
+- Added `analyses/r_seed_yardstick.py` and `analyses/inspect_r_coefficients.py`.
+- Corrected the record on penalty family: `cv.glmnet` defaults to lasso, and R's saved coefficients confirm it. `docs/design-decisions.md` previously said the core analysis used ridge, which made the primary comparison ridge-against-lasso.
+- Documented three positive-class conventions that are invisible in an AUC and would each invert a probability-scale comparison.
+- `docs/design-decisions.md` and `CONTRIBUTING.md` substantially revised, including a note on narrowing Polars reducer types under mypy.
 
 ## 2026.8.6 (PR#13)
 
