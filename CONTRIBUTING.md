@@ -222,14 +222,14 @@ Always branch from an up-to-date `main`.
 
 ## Where things live
 
-| | |
-|---|---|
-| `src/nsch_ml/` | the library |
-| `analyses/` | run-by-hand scripts |
-| `tests/` | tests, including for `analyses/` helpers |
+|                                   |                                                |
+| --------------------------------- | ---------------------------------------------- |
+| `src/nsch_ml/`                    | the library                                    |
+| `analyses/`                       | run-by-hand scripts                            |
+| `tests/`                          | tests, including for `analyses/` helpers       |
 | `docs/replication-equivalence.md` | what matches the R analysis, what differs, why |
-| `docs/equivalence-margin.md` | the pass/fail standard, fixed in advance |
-| `CHANGELOG.md` | what changed and when |
+| `docs/equivalence-margin.md`      | the pass/fail standard, fixed in advance       |
+| `CHANGELOG.md`                    | what changed and when                          |
 
 Numbers live in the documents, not in docstrings. A figure embedded in a
 module docstring goes stale the first time anything is rerun, and nobody

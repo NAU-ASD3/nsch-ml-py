@@ -8,6 +8,16 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.8 (PR#16)
+
+- Ran the prediction-level comparison against the margins committed in #14. Fifty-eight of sixty splits clear every gated check. Two do not, and they are one fitted model scored on its two test subsets.
+- Added `analyses/prediction_equivalence.py`, which gates on Spearman of held-out scores, probability MAD, and fold-level AUC, and refuses to compare unless both files cover the same rows and agree on the outcome for every one.
+- Added `analyses/diagnose_failing_split.py`. The failing model holds out an ordinary fold with an ordinary feature count; the children ranked most differently are all true negatives below 0.007, several of them tied in R and untied in Python. Spearman over the full held-out set spends its power on the 97% the model is confident about, which makes it a poor gate for a 3% outcome. The margin is not revised.
+- Switched the lasso path to `liblinear`, which fits the same L1 objective by coordinate descent, the family glmnet uses, in about a fifth of `saga`'s time. `--l1-solver` selects between them.
+- Added `--intercept-scaling`. `liblinear` penalizes the intercept where glmnet and `saga` do not; `analyses/probe_intercept_scaling.py` measures the cost, and setting it to 100 tightened fold-level agreement by roughly a quarter. Both runs are kept as evidence.
+- Added `--save-predictions`, so a two-hour run yields the per-row probabilities the comparison needs rather than discarding them.
+- Moved to scikit-learn's `l1_ratio` spelling, deprecating `penalty`, which had been emitting an inconsistency warning that the blanket FutureWarning filter was hiding. `ConvergenceWarning` is no longer suppressed either.
+
 ## 2026.8.7.1 (PR#15)
 
 - Recovered R's predicted probabilities and the intercept, which the coefficient files could not supply. `proj_grid` takes a `save_pred` argument defaulting to `FALSE`, and the package's default glmnet saver drops the intercept with `coef(x$model)[-1, ]`; both are one argument each.
