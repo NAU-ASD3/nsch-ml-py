@@ -56,6 +56,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 import polars as pl
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -67,6 +68,10 @@ from nsch_ml.soak import assign_folds, iter_soak_splits
 # script, not library code; the noise buries the results.
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn.*")
+# ConvergenceWarning subclasses UserWarning, so the filter above hides it. A
+# solver that stops quietly at max_iter yields plausible coefficients and no
+# signal, which is the failure mode least likely to be noticed.
+warnings.filterwarnings("always", category=ConvergenceWarning)
 
 DEFAULT_FIXTURE = Path.home() / "Documents/NAU/Grad/Research/ADSI/soak_fixture"
 DEFAULT_REFERENCE = (
@@ -103,19 +108,55 @@ def select_rules(cv: LogisticRegressionCV) -> tuple[float, float, int, int]:
     return float(cv.Cs_[best]), float(cv.Cs_[idx_1se]), best, idx_1se
 
 
+def refit_kwargs(lasso: bool, l1_solver: str, intercept_scaling: float) -> dict[str, Any]:
+    """Penalty and solver settings for a single fixed-C refit.
+
+    scikit-learn 1.8 deprecated `penalty` in favour of `l1_ratio`, so the
+    mixture is given as a ratio only: 1.0 is lasso, 0.0 is ridge. Passing both
+    spellings produced an inconsistency warning and left it unclear which one
+    the estimator honoured.
+
+    liblinear and saga optimize the same L1 objective by different means,
+    coordinate descent against a stochastic method. glmnet uses coordinate
+    descent, so liblinear is the closer analogue and, at this problem size,
+    about five times faster.
+
+    `intercept_scaling` applies to liblinear alone, which penalizes the
+    intercept where glmnet and saga do not. Larger values shrink that penalty
+    toward zero; see analyses/probe_intercept_scaling.py for what it costs
+    here.
+    """
+    if not lasso:
+        return {"solver": "lbfgs", "l1_ratio": 0.0}
+    if l1_solver == "liblinear":
+        return {
+            "solver": "liblinear",
+            "l1_ratio": 1.0,
+            "intercept_scaling": intercept_scaling,
+        }
+    return {"solver": "saga", "l1_ratio": 1.0}
+
+
+def search_kwargs(lasso: bool, l1_solver: str, intercept_scaling: float) -> dict[str, Any]:
+    """The same settings for LogisticRegressionCV, which spells the ratio as a list."""
+    settings = refit_kwargs(lasso, l1_solver, intercept_scaling)
+    ratio = settings.pop("l1_ratio")
+    settings["l1_ratios"] = [ratio]
+    return settings
+
+
 def predict_at(
     c: float,
     x_train: npt.NDArray[np.float64],
     y_train: npt.NDArray[np.int64],
     x_test: npt.NDArray[np.float64],
     lasso: bool,
+    l1_solver: str,
+    intercept_scaling: float,
 ) -> npt.NDArray[np.float64]:
     """Refit at a fixed C and return positive-class probabilities."""
     kwargs: dict[str, Any] = {"C": c, "max_iter": 5000}
-    if lasso:
-        kwargs |= {"solver": "saga", "penalty": "elasticnet", "l1_ratio": 1.0}
-    else:
-        kwargs |= {"solver": "lbfgs"}
+    kwargs |= refit_kwargs(lasso, l1_solver, intercept_scaling)
     clf = LogisticRegression(**kwargs)
     clf.fit(x_train, y_train)
     return np.asarray(clf.predict_proba(x_test)[:, 1], dtype=np.float64)
@@ -127,6 +168,26 @@ def main() -> int:
     ap.add_argument("--lasso", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="stop after N splits")
     ap.add_argument("--out", default="analyses/glmnet_replication.csv")
+    ap.add_argument(
+        "--l1-solver",
+        choices=("saga", "liblinear"),
+        default="saga",
+        help="solver for the lasso path; ignored for ridge, which uses lbfgs",
+    )
+    ap.add_argument(
+        "--save-predictions",
+        default=None,
+        help="write one row per held-out child per split to this path",
+    )
+    ap.add_argument(
+        "--intercept-scaling",
+        type=float,
+        default=1.0,
+        help=(
+            "liblinear only; larger values shrink the penalty liblinear places "
+            "on the intercept, which glmnet does not penalize at all"
+        ),
+    )
     args = ap.parse_args()
 
     root = Path(os.environ.get("NSCH_SOAK_FIXTURE", DEFAULT_FIXTURE))
@@ -149,7 +210,16 @@ def main() -> int:
     y_all = (design["y"].to_numpy().astype(str) == "Yes").astype(np.int64)
     subset = folds["test.subset"].cast(pl.Utf8).to_numpy()
     print(f"design {design.shape}   features {len(feature_cols)}")
-    print(f"penalty: {'lasso' if args.lasso else 'ridge'}   Cs={N_CS} inner_cv={INNER_CV}")
+    penalty_name = "lasso" if args.lasso else "ridge"
+    settings = refit_kwargs(args.lasso, args.l1_solver, args.intercept_scaling)
+    scaling_note = ""
+    if "intercept_scaling" in settings:
+        scaling_note = f"   intercept_scaling={args.intercept_scaling:g}"
+    print(
+        f"penalty: {penalty_name}   solver: {settings['solver']}   "
+        f"inner_cv={INNER_CV}{scaling_note}"
+    )
+    print(f"Cs: {len(N_CS)} points from {N_CS.min():.1e} to {N_CS.max():.1e}")
 
     ref: dict[tuple[str, str, int], tuple[float, float]] = {}
     for s, src, f, auc, acc in reference.select(
@@ -182,6 +252,7 @@ def main() -> int:
     print(f"splits to fit: {len(splits)}\n")
 
     rows = []
+    prediction_rows: list[dict[str, object]] = []
     t_start = time.perf_counter()
     for i, split in enumerate(splits, 1):
         scaler = StandardScaler()
@@ -196,10 +267,7 @@ def main() -> int:
             "max_iter": 5000,
             "n_jobs": -1,
         }
-        if args.lasso:
-            cv_kwargs |= {"solver": "saga", "penalty": "elasticnet", "l1_ratios": [1.0]}
-        else:
-            cv_kwargs |= {"solver": "lbfgs"}
+        cv_kwargs |= search_kwargs(args.lasso, args.l1_solver, args.intercept_scaling)
         cv = LogisticRegressionCV(**cv_kwargs)
         cv.fit(x_train, y_train)
         c_min, c_1se, i_min, i_1se = select_rules(cv)
@@ -216,10 +284,30 @@ def main() -> int:
             "idx_min": i_min,
             "idx_1se": i_1se,
         }
+        probability_of: dict[str, npt.NDArray[np.float64]] = {}
         for label, c in (("min", c_min), ("1se", c_1se)):
-            prob = predict_at(c, x_train, y_train, x_test, args.lasso)
+            prob = predict_at(
+                c, x_train, y_train, x_test, args.lasso, args.l1_solver, args.intercept_scaling
+            )
+            probability_of[label] = prob
             rec[f"auc_{label}"] = roc_auc_score(y_test, prob)
             rec[f"acc_{label}"] = accuracy_score(y_test, (prob >= 0.5).astype(np.int64))
+
+        if args.save_predictions:
+            # row_id is 1-based to match the folds file and R's export, so the
+            # two sides join without an offset correction.
+            for position, design_row in enumerate(split.test_idx):
+                prediction_rows.append(
+                    {
+                        "test_subset": split.test_subset,
+                        "train_source": split.train_source.value,
+                        "fold": split.fold,
+                        "row_id": int(design_row) + 1,
+                        "truth": int(y_test[position]),
+                        "py_prob_min": float(probability_of["min"][position]),
+                        "py_prob_1se": float(probability_of["1se"][position]),
+                    }
+                )
 
         r = ref.get((split.test_subset, split.train_source.value, split.fold))
         rec["r_auc"] = r[0] if r else None
@@ -246,6 +334,18 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out.write_csv(out_path)
     print(f"\nwrote {out_path}   ({time.perf_counter() - t_start:.0f}s total)")
+
+    if args.save_predictions:
+        predictions_path = Path(args.save_predictions)
+        predictions_path.parent.mkdir(parents=True, exist_ok=True)
+        pl.DataFrame(prediction_rows).write_csv(predictions_path)
+        n_splits_written = len(
+            {(row["test_subset"], row["train_source"], row["fold"]) for row in prediction_rows}
+        )
+        print(
+            f"wrote {predictions_path}   "
+            f"({len(prediction_rows)} rows over {n_splits_written} splits)"
+        )
 
     matched = out.filter(pl.col("r_auc").is_not_null())
     print(f"\n== agreement ({matched.height} of {out.height} splits matched to R) ==")
