@@ -156,3 +156,35 @@ missed tells us something; a margin adjusted afterwards tells us nothing.
 The one revision I will accept without embarrassment is the provisional
 probability-scale figure, because it was set without a reference measurement
 and is labelled that way here.
+
+---
+
+## Addendum, 10 August 2026
+
+Written after the comparison was run. Nothing above has been changed.
+
+Two statements in the original rest on a claim that no longer holds. The
+rationale for the AUC margin says it is "tight enough to sit well under the
+0.0073 that separates two package builds," and the conditions say the build
+"has to be recorded because it moves results by 0.0073."
+
+That 0.0073 was an artifact. The R runs it came from do not all partition the
+data the same way, and comparing them fold by fold pairs different children.
+On cell means, which do not depend on fold numbering, every run we have
+agrees to within 0.0005, including the results the paper was published from.
+`docs/replication-equivalence.md` sets out the evidence.
+
+The margins themselves are unaffected. They were anchored on `seed1`, `seed2`
+and `seed3`, which share a fold assignment, so the yardstick was measuring
+what it claimed to measure. The AUC margin of 0.002 is still about three
+times that spread; only the second half of its justification was wrong.
+
+What replaces the instruction to record the build is a stricter one: record
+the fold assignment, and confirm both sides share it before comparing
+anything fold by fold. For the comparison that was run, that was confirmed
+directly rather than assumed, by joining R's held-out predictions to ours on
+split and row identifier and checking that all 138,030 rows matched with the
+outcome agreeing on every one.
+
+The 0.0073 also appears in the reasoning behind the Spearman floor, where it
+does no work, and nowhere in the numbers.
