@@ -8,6 +8,14 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.11.1 (PR#21)
+
+- Added `notebooks/`, where the weekly team-meeting notebooks live, with a README covering the environment variables they read and the two commands to run and export them. Marimo notebooks are plain Python files, so they are committed and diff normally. The exported HTML is not committed and is regenerated when it is needed.
+- `marimo` and `matplotlib` are now dev dependencies. Both have to sit in the project environment rather than being supplied per command, because a notebook that imports `polars` or `nsch_ml` cannot run under `uvx`, which resolves an isolated environment without either. `analyses/soak_ttests.py` no longer needs `uv run --with matplotlib`; plain `uv run` works.
+- Ruff ignores `ARG001` and `E501` under `notebooks/`. Marimo cell functions receive their inputs as parameters, which reads as unused arguments, and prose in markdown cells runs past the line limit. Mypy continues to check `src/nsch_ml`, `analyses` and `tests` only, so anything a notebook needs to be right about belongs in one of those.
+- Removed the `analyses/**/*.py` per-file ignore for `T201`. The `T` rule family is not selected, so the entry never suppressed anything. This is the same defect cleaned up earlier for `ANN401` and `COM812`.
+- Corrected the date on the previous entry, which landed on 11 August under a 10 August heading, and removed a stray character a paste had left in a `.gitignore` comment.
+
 ## 2026.8.11 (PR#20)
 
 - Planning notes are no longer tracked. `planning/` holds working documents that name people, describe one machine's filesystem, and go stale faster than anything in `docs/`. They stay on disk and are gitignored.

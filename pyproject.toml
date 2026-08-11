@@ -2,7 +2,7 @@
 name = "nsch-ml"
 # Date-based versioning, matching the nsch and nsch-py convention.
 # Bumped to the merge day on every PR.
-version = "2026.8.11"
+version = "2026.8.11.1"
 description = "Python replication of the ASD3 NSCH machine-learning analysis: SOAK cross-validation, penalized models, SHAP, and fairness analyses on the harmonized NSCH dataset."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -83,6 +83,13 @@ dev = [
     "pre-commit>=4.6.1",
     "mkdocs-material>=9.7.7",
     "mkdocstrings[python]>=1.0.6",
+    # Notebooks for the weekly team meetings. Marimo notebooks are plain Python
+    # files, so they are committed under notebooks/ and diff like any other
+    # source file.
+    "marimo>=0.23.16",
+    # Figures for those notebooks, and for analyses/soak_ttests.py, which no
+    # longer needs to be run with `uv run --with matplotlib`.
+    "matplotlib>=3.11.1",
 ]
 
 
@@ -137,9 +144,10 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 # Re-exports in the package __init__ read as unused imports.
 "src/nsch_ml/__init__.py" = ["F401"]
-# Analysis scripts print their results and load sibling scripts by path.
-# They are run by hand, not imported by the package.
-"analyses/**/*.py" = ["T201"]
+# Marimo notebooks are Python files whose cell functions receive their inputs
+# as parameters, so unused-argument warnings fire on ordinary cell wiring, and
+# prose in markdown cells runs past the line limit.
+"notebooks/**" = ["ARG001", "E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["nsch_ml"]
@@ -173,9 +181,9 @@ module = ["sklearn.*", "xgboost.*", "shap.*", "glmnet.*"]
 ignore_missing_imports = true
 
 # scipy ships no type information either, and scipy-stubs is partial enough
-# that taking the dependency buys little. matplotlib is deliberately not a
-# project dependency: only analyses/soak_ttests.py needs it, and it is
-# supplied at run time with `uv run --with matplotlib`.
+# that taking the dependency buys little. matplotlib is a dev dependency rather
+# than a run-time `--with` flag as of the notebooks work, but it still ships no
+# stubs, so this override stays.
 [[tool.mypy.overrides]]
 module = ["scipy", "scipy.*", "matplotlib", "matplotlib.*"]
 ignore_missing_imports = true
