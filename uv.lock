@@ -824,7 +824,7 @@ wheels = [
 
 [[package]]
 name = "nsch-ml"
-version = "2026.8.10"
+version = "2026.8.10.1"
 source = { editable = "." }
 dependencies = [
     { name = "pandas" },
