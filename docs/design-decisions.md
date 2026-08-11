@@ -1,6 +1,8 @@
 # Design decisions
 
-Why the package is built the way it is. Each entry records a decision a maintainer might otherwise re-litigate. Longer treatments live in `planning/workstream-c-scoping.md` and in the documents named below; these are the short versions.
+Why the package is built the way it is. Each entry records a decision a
+maintainer might otherwise re-litigate. These are the short versions; the
+documents named in each entry carry the detail.
 
 ## Equivalence is judged on predictions, not coefficients
 
