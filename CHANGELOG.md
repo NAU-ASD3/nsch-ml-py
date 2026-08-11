@@ -8,6 +8,16 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.10 (PR#17)
+
+- Corrected the central claim of `docs/replication-equivalence.md`. Earlier drafts said the `mlr3learners` build shifts the R results by 0.0073 mean absolute AUC, larger than the effects the study reports. The R runs it came from do not all partition the data the same way, so pairing them fold by fold compares different children. On cell means, which do not depend on fold numbering, all eleven runs agree to within 0.0005.
+- Added `analyses/diagnose_fold_relabelling.py`. Optimal matching closes 64 to 66 percent of the between-group per-fold gap and 5 to 23 percent within a group, with no overlap across 44 pairs. Batchtools has a third fold assignment, which explains an anomaly the docs had listed as open.
+- Added `analyses/cell_mean_distances.py`, which compares runs on a quantity that does not depend on fold numbering and warns that its distances are not on the same scale as the per-fold ones.
+- Added `analyses/compare_published_registry.py`. The results the SOAK paper was published from are in the cv-same-other-paper checkout and reproduce Section 4.3 to four decimals. They used `same_other_cv`, so only cell means are comparable, and on those they sit in the middle of the pack.
+- Recorded that our fold fixture was drawn by `mlr3resampling` 2026.5.19 under seed 1, and that our folds match `NSCH_seed1` at row level rather than by assumption.
+- `docs/equivalence-margin.md` gained a dated addendum rather than an edit. Two statements in it relied on the 0.0073 figure; the margins themselves were anchored on runs sharing a fold assignment and are unaffected.
+- Recorded Olivia's decision that care coordination is a predictor rather than an outcome, which closes the last open question on the target side.
+
 ## 2026.8.8 (PR#16)
 
 - Ran the prediction-level comparison against the margins committed in #14. Fifty-eight of sixty splits clear every gated check. Two do not, and they are one fitted model scored on its two test subsets.
