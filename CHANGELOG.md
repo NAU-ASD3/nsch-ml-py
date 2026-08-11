@@ -8,6 +8,15 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.10.1 (PR#18)
+
+- `analyses/soak_ttests.py` now reports percent error alongside AUC. The SOAK paper's own figures compute their p-values on percent error, and we had been applying the method to AUC. Both come from accuracy columns already in the results file, so no rerun was needed.
+- On this dataset percent error cannot see what AUC sees. The strongest contrast in the R results, 2019 All-minus-Same, is p = 0.0015 on AUC and p = 0.3662 on error. The implementation gap is 3.5 times the size of the contrasts on error against 0.5 times on AUC. At a 3% base rate, accuracy runs from 0.973 to 0.980 across every split. AUC stays primary; percent error is reported because it is the paper's metric.
+- Every figure in `docs/replication-equivalence.md` now comes from one run, the lasso fits in `glmnet_replication_lasso_seed1_is100.csv`. An earlier draft mixed a ridge run and a lasso run in the same tables.
+- The AUC offset is characterised rather than left open: a level shift of about +0.001 across all six cells, varying by ±0.0003, which cancels in the contrasts because a contrast is a difference between cells.
+- Rewrote `docs/replication-equivalence.md` for readers without background on the prior work, adding sections on the study, the SOAK design, and the model.
+- Removed two claims that could not be traced to output: a `lambda.min` Spearman figure and a three-way penalty-family comparison.
+
 ## 2026.8.10 (PR#17)
 
 - Corrected the central claim of `docs/replication-equivalence.md`. Earlier drafts said the `mlr3learners` build shifts the R results by 0.0073 mean absolute AUC, larger than the effects the study reports. The R runs it came from do not all partition the data the same way, so pairing them fold by fold compares different children. On cell means, which do not depend on fold numbering, all eleven runs agree to within 0.0005.
