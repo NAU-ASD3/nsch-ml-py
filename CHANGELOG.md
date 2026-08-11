@@ -8,6 +8,12 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.10.2 (PR#19)
+
+- Added `analyses/run_featureless_replication.py`, a port of the baseline learner that ignores every feature and predicts the training set's outcome rate. Accuracy matches the published run exactly in all six cells, difference 0.000000.
+- The featureless comparison tests everything except the model. Its predictions depend only on which children are in the training set and how many have the outcome, so exact agreement confirms the data, the outcome coding, and the split membership against the publication. It is also unaffected by the fold-assignment differences between runs, since accuracy at this base rate is a property of the data rather than the partition.
+- AUC is 0.5 on all 60 splits, as it must be for a constant prediction, and is reported only to confirm both sides agree the ordering is degenerate.
+
 ## 2026.8.10.1 (PR#18)
 
 - `analyses/soak_ttests.py` now reports percent error alongside AUC. The SOAK paper's own figures compute their p-values on percent error, and we had been applying the method to AUC. Both come from accuracy columns already in the results file, so no rerun was needed.
