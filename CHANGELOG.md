@@ -8,6 +8,12 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.10.3 (PR#20)
+
+- Planning notes are no longer tracked. `planning/` holds working documents that name people, describe one machine's filesystem, and go stale faster than anything in `docs/`. They stay on disk and are gitignored.
+- Refreshed the entry-point documents. `README.md` now says why the port exists rather than only what it contains, and `docs/index.md` names the three published documents and which to read first. Both dropped links into `planning/` that would have 404'd.
+- Removed SHAP from the package description in `README.md`, `docs/index.md`, and the package docstring. It remains in `pyproject.toml` as a dependency and a keyword, pending a decision on whether it is cancelled or deferred.
+
 ## 2026.8.10.2 (PR#19)
 
 - Added `analyses/run_featureless_replication.py`, a port of the baseline learner that ignores every feature and predicts the training set's outcome rate. Accuracy matches the published run exactly in all six cells, difference 0.000000.
