@@ -8,6 +8,13 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.11.2 (PR#22)
+
+- Added `notebooks/replication_side_by_side.py`, the team-facing account of the R-to-Python replication and the outcome extension it enables. Every figure and number is computed from the result files when the notebook runs; nothing is transcribed from `docs/`. It imports `soak_ttests`, `prediction_equivalence` and `compare_published_registry` rather than restating their logic, so a correction to a script reaches the notebook.
+- Figures follow the idiom of the SOAK paper's own figures: one open circle per train/test split with a mean and standard-deviation marker, rather than bars. At AUCs near 0.97 with differences around 0.001, honest bars anchored at zero would show nothing and truncated bars would mislead. Showing every fold makes the actual argument visible, which is that the spread within a cell exceeds the gap between implementations.
+- Recorded two observations the comparison surfaced. The Python mean exceeds the R mean in all six cells rather than varying in sign, which is a level shift rather than noise; its cause is untested and it cancels out of the SOAK contrasts, which are differences between cells. And the two survey years hold 18,202 and 27,808 children, so `Other` means a larger training set when 2019 is held out and a smaller one when 2020 is. That asymmetry is the likeliest explanation for the sign flip in the Other-minus-Same contrast, and it means that contrast should not be read as year-to-year transferability until an equal-training-size run has been done.
+- `notebooks/README.md` documents `--no-include-code`, which produces the version for readers who want the results, against the full export or the `.py` for anyone reviewing the analysis.
+
 ## 2026.8.11.1 (PR#21)
 
 - Added `notebooks/`, where the weekly team-meeting notebooks live, with a README covering the environment variables they read and the two commands to run and export them. Marimo notebooks are plain Python files, so they are committed and diff normally. The exported HTML is not committed and is regenerated when it is needed.
