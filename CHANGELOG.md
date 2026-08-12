@@ -8,6 +8,18 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.12.1 (PR#24)
+
+- Added `analyses/run_outcome_soak.py`, the SOAK runner for the extension outcomes. It imports the learner from `run_glmnet_replication.py` rather than restating it, so both scripts share one definition of the model and the validated replication is untouched. Verified by running the new machinery against the replication's own outcome on R's own folds: mean AUC difference +0.00062, largest 0.00132, which matches the offset the replication already documents.
+- The runner keeps the downsampled splits instead of filtering them out, and emits an `is_equal_size` column. That column is necessary rather than convenient: a training source already at the target size is not duplicated by the splitter, so where `Same` is the smallest source its equal-size arm is its full split. Filtering on `downsampled` alone would drop `Same` from the equal-size comparison in exactly those cells and compare unequal training sets in the rest.
+- Added Brier score and calibration slope and intercept, per selection rule. AUC is invariant to any monotone transformation of the predicted probabilities, so a model can rank children correctly while misstating how many lack care. On the regression run the slopes came out between 1.016 and 1.087, so the replication's model is very slightly under-confident.
+- The runner writes per-child predictions and per-split non-zero coefficients, so stability selection, recalibration, or any metric added later needs no refit. Both are gitignored under `analyses/runs/`; the per-split metrics and the run provenance are tracked.
+- Guards that refuse rather than warn: every column named for removal must exist, or a drop list matching nothing would leave the outcome among the features and produce an implausibly good result that looks like success; the fold file must line up with the matrix row for row; the fold provenance must name this matrix's checksum and this outcome; features must be numeric and complete, since imputing silently would pre-empt the missing-data decision the plan defers.
+- `--dry-run` prints the split inventory and training sizes without fitting. Used before any real run: it confirmed 200 splits on the autism-subset matrix and training sizes matching the R size formula to the row.
+- `outcomes.py` now covers both matrices, which differ in subset column, non-feature columns and column naming. It also carries the pre-registered `foregone_care_strict` variants and records which outcome's folds each variant reuses, so the runner verifies the fold file rather than inferring it from a name.
+- Fixture fold assignments renamed with a `fixture_` prefix to match the service-use ones.
+- Plan amendment recorded: "equal size" is equal to within about half a percent, because the downsample takes a floor within every stratum and the shortfalls accumulate. Immaterial against the 1.8 to 5.4 fold imbalance it corrects, and it touches only the exploratory contrasts.
+
 ## 2026.8.12 (PR#23)
 
 - Added `docs/extension-analysis-plan.md`, the pre-registration for the three service outcomes, committed before any model was fitted against them. It fixes the positive-class definitions, the population each outcome is valid for, the leak audit, the fold-drawing rule, the metrics, and one confirmatory contrast per task with everything else labelled exploratory. Append-only once merged, amended by dated addenda.

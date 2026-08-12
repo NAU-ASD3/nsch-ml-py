@@ -1,0 +1,18 @@
+field,value
+drawn_at_utc,2026-08-12T19:02:31+00:00
+matrix_key,service_use
+outcome,foregone_care
+outcome_label,Foregone care: needed health care and did not receive it
+matrix,/Users/chrisreger/Documents/NAU/Grad/Research/ADSI/Monsoon - ASD3 ML Old/2016_2023_ServiceUse.csv
+matrix_md5,f2a64b712a7d56f3898e94c48fbf0c65
+rows,6088
+positives,743
+n_folds,10
+seed,1
+stratified_on,"(period, outcome)"
+dropped_from_features,k4q27=Yes
+python,3.13.13
+nsch-ml,2026.8.12
+polars,1.43.2
+numpy,2.4.6
+scikit-learn,1.9.0

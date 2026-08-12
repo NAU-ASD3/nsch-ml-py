@@ -20,9 +20,10 @@ traced is not reproducible, however careful the modelling was.
 Run from the repository root::
 
     uv run python analyses/draw_outcome_folds.py \\
+        --matrix fixture \\
         --fixture "$REPRO/data_Classif/NSCH_autism.csv" \\
         --outcome foregone_care \\
-        --out analyses/folds/foregone_care_folds.csv
+        --out analyses/folds/fixture_foregone_care_folds.csv
 """
 
 from __future__ import annotations
@@ -36,11 +37,10 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
-from outcomes import NON_FEATURE_COLUMNS, outcome_or_exit
+from outcomes import matrix_or_exit
 
 from nsch_ml.soak import assign_folds
 
-SUBSET_COLUMN = "survey_year"
 DEFAULT_FOLDS = 10
 # Seed 1 throughout the project, matching the replication's convention.
 DEFAULT_SEED = 1
@@ -67,7 +67,8 @@ def package_version(name: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--matrix", required=True, help="fixture or service_use")
+    parser.add_argument("--fixture", required=True, help="path to the matrix CSV")
     parser.add_argument("--outcome", required=True)
     parser.add_argument("--out", required=True, help="where to write the fold assignment")
     parser.add_argument(
@@ -83,12 +84,14 @@ def main() -> int:
     if not fixture_path.is_file():
         print(f"REFUSED: no matrix at {fixture_path}")
         return 1
-    outcome = outcome_or_exit(args.outcome)
+    spec = matrix_or_exit(args.matrix)
+    outcome = spec.outcome_or_exit(args.outcome)
+    subset_column = spec.subset_column
 
     matrix = pl.read_csv(fixture_path)
     missing = [
         name
-        for name in (SUBSET_COLUMN, *NON_FEATURE_COLUMNS, *outcome.drop_columns)
+        for name in (subset_column, *spec.non_feature_columns, *outcome.drop_columns)
         if name not in matrix.columns
     ]
     if missing:
@@ -96,15 +99,18 @@ def main() -> int:
         return 1
 
     positive = matrix.select(outcome.positive.alias("positive"))["positive"]
-    subset = matrix[SUBSET_COLUMN].cast(pl.Utf8)
+    subset = matrix[subset_column].cast(pl.Utf8)
     checksum = file_md5(fixture_path)
 
     print(RULE)
     print(f"Matrix    {fixture_path}")
+    print(f"          {spec.label}")
     print(f"md5       {checksum}")
     print(f"Outcome   {outcome.key}: {outcome.label}")
     print(f"Rows      {matrix.height}, positives {int(positive.sum())}")
-    print(f"Draw      {args.folds} folds, seed {args.seed}, stratified on (survey year, outcome)")
+    print(
+        f"Draw      {args.folds} folds, seed {args.seed}, stratified on ({subset_column}, outcome)"
+    )
 
     fold_ids = assign_folds(
         subset=subset,
@@ -161,6 +167,7 @@ def main() -> int:
         {
             "field": [
                 "drawn_at_utc",
+                "matrix_key",
                 "outcome",
                 "outcome_label",
                 "matrix",
@@ -176,6 +183,7 @@ def main() -> int:
             ],
             "value": [
                 datetime.now(UTC).isoformat(timespec="seconds"),
+                spec.key,
                 outcome.key,
                 outcome.label,
                 str(fixture_path),
@@ -184,7 +192,7 @@ def main() -> int:
                 str(int(positive.sum())),
                 str(args.folds),
                 str(args.seed),
-                f"({SUBSET_COLUMN}, outcome)",
+                f"({subset_column}, outcome)",
                 ", ".join(outcome.drop_columns) or "none",
                 platform.python_version(),
                 *[package_version(name) for name in TRACKED_PACKAGES],

@@ -232,6 +232,11 @@ analyses/figures/
 # analyses/draw_outcome_folds.py rather than committing the assignment.
 analyses/folds/*_folds.csv
 
+# Per-child predictions and per-split coefficients run to tens of megabytes.
+# They are derived artifacts: the metrics CSV and its provenance record are
+# tracked, and these can be rebuilt from them by rerunning the same command.
+analyses/runs/
+
 # Working notes, handoffs, and scoping documents. Kept locally, never
 # committed: they name people, describe one machine's filesystem, and go
 # stale faster than anything in docs/.
