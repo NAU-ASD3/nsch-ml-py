@@ -33,7 +33,12 @@ To open a notebook and present from it:
 
 To export a static copy for sharing:
 
-    uv run marimo export html notebooks/<name>.py -o <name>.html
+    uv run marimo export html notebooks/<name>.py --no-include-code -o <name>.html
+
+Drop `--no-include-code` when the reader wants to see the working. The
+code-free version is the one to send to collaborators who are reading for the
+results; the full version, or the `.py` itself, is the one to send to anyone
+reviewing the analysis.
 
 Use `uv run`, not `uvx`. `uvx marimo` runs marimo in an isolated environment
 that has neither the project's dependencies nor `nsch_ml` itself, so every
