@@ -494,5 +494,37 @@ and does not substitute for.
 
 ## Amendments
 
-None yet. Additions go below this line, dated, without altering anything
-above.
+Additions go below this line, dated, without altering anything above.
+
+### 12 August 2026: "equal size" means within about half a percent
+
+The section above says the Other-minus-Same contrast is reported from the
+equal-size comparison. Having now inspected what the splitter actually
+produces, the training sets it equalises are close but not identical, and the
+plan should say so before any result exists rather than after.
+
+The downsample keeps a proportional prefix within each (subset, outcome)
+stratum, taking `floor(stratum_size * target / nominal_own)` rows from each.
+Every stratum therefore rounds down, and the shortfalls accumulate: a source
+spanning eight strata can finish up to eight rows below target. The target is
+also the *nominal* size rather than any particular split's actual size, which
+adds a row or two of wobble on top.
+
+Measured on the autism-subset matrix, for the ED-any task:
+
+| Period | Same, actual | Other at equal size | All at equal size | Largest gap |
+| --- | ---: | ---: | ---: | ---: |
+| 2016-17 | 933 to 935 | 930 to 934 | 929 to 931 | 0.6% |
+| 2018-19 | 918 to 920 | 915 to 916 | 915 | 0.5% |
+| 2020-21 | 1,504 to 1,505 | 1,501 to 1,503 | 1,499 to 1,501 | 0.4% |
+| 2022-23 | 2,121 to 2,122 | 2,117 to 2,121 | 2,118 to 2,119 | 0.2% |
+
+So "equal size" should be read as equal to within one percent, and the largest
+discrepancy observed is six rows in nine hundred. Set against the 1.8 to 5.4
+fold imbalance it corrects, this is immaterial, and it is a property of the
+SOAK downsampling rule rather than a choice available to us. But a reader
+comparing 935 against 929 is entitled to an explanation, and it should be here
+rather than improvised later.
+
+This touches only the exploratory contrasts. The confirmatory contrast,
+All minus Same, is computed at full size and is unaffected.
