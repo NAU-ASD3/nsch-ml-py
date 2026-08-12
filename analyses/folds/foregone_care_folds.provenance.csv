@@ -1,0 +1,17 @@
+field,value
+drawn_at_utc,2026-08-12T00:45:12+00:00
+outcome,foregone_care
+outcome_label,Foregone care: needed health care and did not receive it
+matrix,/Users/chrisreger/Documents/NAU/Grad/Research/ADSI/reproduce-soak-nsch/data_Classif/NSCH_autism.csv
+matrix_md5,8c1e5a82e75d9e74eaa94a2dbe6c8a36
+rows,46010
+positives,1318
+n_folds,10
+seed,1
+stratified_on,"(survey_year, outcome)"
+dropped_from_features,Needed_Health_Care_Not_Received_Yes
+python,3.13.13
+nsch-ml,2026.8.11.2
+polars,1.43.2
+numpy,2.4.6
+scikit-learn,1.9.0

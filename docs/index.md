@@ -18,6 +18,11 @@ exists, these are the places to start:
 - **[Equivalence margin](equivalence-margin.md)** is the pass/fail standard
   the comparison was judged against, committed before the comparison was
   written.
+- **[Extension analysis plan](extension-analysis-plan.md)** does the same job
+  for the work that follows the replication: the three service outcomes, the
+  populations each is valid for, what is removed from the features and why,
+  how folds are drawn, and what this pass deliberately leaves out. Committed
+  before the first model was fitted against any of those outcomes.
 - **[Design decisions](design-decisions.md)** records the choices a
   maintainer might otherwise re-litigate: why predictions and not
   coefficients, why we wrote our own splitter, what the label conventions
