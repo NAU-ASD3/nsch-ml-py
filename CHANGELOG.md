@@ -8,6 +8,16 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.8.25 (PR#27)
+
+- Added `analyses/audit_feature_constructs.py`, which joins every feature column to the survey's own `label var` text and groups features by what their questions ask. This replaces the leak audit recorded in the analysis plan, which matched column names against the outcome's survey code and therefore could not find a variable whose name shares no characters with it.
+- The audit found `c4q04`, "Frustrated In Efforts to Get Service", which the old method had missed. It carries a mean coefficient nine times the next largest and is selected in 120 of 120 splits; among children whose families were never frustrated, 1% reported foregone care, against 55% among those always frustrated. Alone it scores AUC 0.8347 against 0.8709 for the full 292-feature model, so the other 291 features contribute 0.036 between them.
+- Added `_conservative` outcome variants excluding the care-seeking-process features, alongside rather than replacing the primary specifications. All specifications are reported. The exclusions behaved like a scalpel, which is the evidence they were aimed correctly: behaviour therapy moved 0.7931 to 0.7930 and ED-any 0.7148 to 0.7105, while foregone care moved 0.8709 to 0.8038.
+- Two amendments to `docs/extension-analysis-plan.md`: the exclusion rule with its exclusions cited by label, an explicit statement that the rule was written after seeing which variable was large, and the insurance-adequacy call recorded as a judgment the rule does not decide by itself.
+- A second amendment records label drift on `k4q20r`, examined and dismissed. 2016 labels it "Doctor Visit" and every year from 2017 on labels it "Preventive Visit", but the response options are identical across all years and the distribution is flat across all four periods, so the wording changed and the question did not. Its entry stands.
+- The audit reads several years' `.do` files at once and reports any stem whose label changed between them. A harmonized matrix carries names drawn from different years, so no single year covers it: `k4q02_r` resolves only from 2019 to 2022 and `eyedoctor` only from 2024. Both matrices now label at 100%, against 55% on the full-population matrix before a punctuation-matching defect was fixed.
+- Verified absent from both matrices: `issuecost`, `notopen`, `transportcc`, `appointment`, `available`, `notelig`, `treatneed`, `k4q26` and the whole `k4q28x` family, all of which are asked only of families who answered yes to the foregone-care question. Their absence is why the leak found here is construct overlap rather than a logical-skip encoding.
+
 ## 2026.8.12.1 (PR#24)
 
 - Added `analyses/run_outcome_soak.py`, the SOAK runner for the extension outcomes. It imports the learner from `run_glmnet_replication.py` rather than restating it, so both scripts share one definition of the model and the validated replication is untouched. Verified by running the new machinery against the replication's own outcome on R's own folds: mean AUC difference +0.00062, largest 0.00132, which matches the offset the replication already documents.
