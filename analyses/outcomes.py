@@ -112,6 +112,26 @@ FIXTURE_UNMET_NEED_NEIGHBOURS = (
     "Specialist_Visit_No__but_this_child_needed_to_see_a_specialist",
 )
 
+# Questions about the process of obtaining care in the same twelve-month window
+# as an access outcome, identified by the feature audit and listed in the
+# 24 August amendment to docs/extension-analysis-plan.md. Excluded in the
+# `_conservative` variants only; the primary specifications keep them.
+FIXTURE_CARE_SEEKING = (
+    "Frustrated_In_Efforts_to_Get_Service_Never",
+    "Frustrated_In_Efforts_to_Get_Service_Sometimes",
+    "Frustrated_In_Efforts_to_Get_Service_Usually",
+    "Need_a_Referral_Yes",
+    "Health_Insurance___Benefits_Cover_Services_Always",
+    "Health_Insurance___Benefits_Cover_Services_Usually",
+    "Health_Insurance___Benefits_Cover_Services_Sometimes",
+    "Health_Insurance___Allow_to_See_Provider_Always",
+    "Health_Insurance___Allow_to_See_Provider_Usually",
+    "Health_Insurance___Allow_to_See_Provider_Sometimes",
+    "Health_Insurance___Cover_Mental_Behavioral_Needs_Always",
+    "Health_Insurance___Cover_Mental_Behavioral_Needs_Usually",
+    "Health_Insurance___Cover_Mental_Behavioral_Needs_Sometimes",
+)
+
 FIXTURE = MatrixSpec(
     key="fixture",
     label="Full child population, survey years 2019 and 2020",
@@ -156,6 +176,27 @@ FIXTURE = MatrixSpec(
             positive=pl.col("y") == "Yes",
             drop_columns=(),
         ),
+        "foregone_care_conservative": OutcomeDefinition(
+            key="foregone_care_conservative",
+            label="Foregone care, with care-seeking-process features removed",
+            positive=pl.col(FIXTURE_FOREGONE) == 1,
+            drop_columns=(FIXTURE_FOREGONE, *FIXTURE_CARE_SEEKING),
+            folds_from="foregone_care",
+        ),
+        "ed_any_conservative": OutcomeDefinition(
+            key="ed_any_conservative",
+            label="ED use, one or more visits, care-seeking-process features removed",
+            positive=pl.col(FIXTURE_ED_NONE) == 0,
+            drop_columns=(FIXTURE_ED_NONE, FIXTURE_ED_ONE, *FIXTURE_CARE_SEEKING),
+            folds_from="ed_any",
+        ),
+        "ed_repeat_conservative": OutcomeDefinition(
+            key="ed_repeat_conservative",
+            label="ED use, two or more visits, care-seeking-process features removed",
+            positive=(pl.col(FIXTURE_ED_NONE) == 0) & (pl.col(FIXTURE_ED_ONE) == 0),
+            drop_columns=(FIXTURE_ED_NONE, FIXTURE_ED_ONE, *FIXTURE_CARE_SEEKING),
+            folds_from="ed_repeat",
+        ),
     },
 )
 
@@ -176,6 +217,19 @@ SERVICE_UNMET_NEED_NEIGHBOURS = (
     "k4q22_r=No, but this child needed to see a mental health professional",
     "k4q24_r=Yes",
     "k4q24_r=No, but this child needed to see a specialist",
+)
+
+SERVICE_CARE_SEEKING = (
+    "c4q04=Never",
+    "c4q04=Sometimes",
+    "c4q04=Usually",
+    "k5q10=Yes",
+    "k5q11=Not difficult",
+    "k5q11=Somewhat difficult",
+    "k5q11=Very difficult",
+    "k5q20_r=No",
+    "k5q20_r=Yes",
+    "k5q21=Yes",
 )
 
 SERVICE_USE = MatrixSpec(
@@ -217,6 +271,34 @@ SERVICE_USE = MatrixSpec(
             label="Behaviour therapy received for autism",
             positive=pl.col(SERVICE_THERAPY) == 1,
             drop_columns=(SERVICE_THERAPY,),
+        ),
+        "foregone_care_conservative": OutcomeDefinition(
+            key="foregone_care_conservative",
+            label="Foregone care, with care-seeking-process features removed",
+            positive=pl.col(SERVICE_FOREGONE) == 1,
+            drop_columns=(SERVICE_FOREGONE, *SERVICE_CARE_SEEKING),
+            folds_from="foregone_care",
+        ),
+        "ed_any_conservative": OutcomeDefinition(
+            key="ed_any_conservative",
+            label="ED use, one or more visits, care-seeking-process features removed",
+            positive=pl.col(SERVICE_ED_NONE) == 0,
+            drop_columns=(SERVICE_ED_NONE, SERVICE_ED_ONE, *SERVICE_CARE_SEEKING),
+            folds_from="ed_any",
+        ),
+        "ed_repeat_conservative": OutcomeDefinition(
+            key="ed_repeat_conservative",
+            label="ED use, two or more visits, care-seeking-process features removed",
+            positive=(pl.col(SERVICE_ED_NONE) == 0) & (pl.col(SERVICE_ED_ONE) == 0),
+            drop_columns=(SERVICE_ED_NONE, SERVICE_ED_ONE, *SERVICE_CARE_SEEKING),
+            folds_from="ed_repeat",
+        ),
+        "behaviour_therapy_conservative": OutcomeDefinition(
+            key="behaviour_therapy_conservative",
+            label="Behaviour therapy, with care-seeking-process features removed",
+            positive=pl.col(SERVICE_THERAPY) == 1,
+            drop_columns=(SERVICE_THERAPY, *SERVICE_CARE_SEEKING),
+            folds_from="behaviour_therapy",
         ),
     },
 )

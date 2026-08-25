@@ -528,3 +528,128 @@ rather than improvised later.
 
 This touches only the exploratory contrasts. The confirmatory contrast,
 All minus Same, is computed at full size and is unaffected.
+
+### 24 August 2026: the leak audit was defective, and what replaces it
+
+The first results on the autism-subset matrix came back with foregone care
+predicted at AUC 0.87 against emergency department use at 0.71. Unmet care
+need should be the harder problem, not the easier one, and that gap is what
+prompted this.
+
+**What was wrong.** The leak audit recorded above examined four variables:
+`k4q20r`, `k4q02_r`, `k4q22_r` and `k4q24_r`. Every one was found by matching
+column names against the outcome's survey code, `k4q27`. That method cannot
+find a variable whose name shares no characters with the outcome's, and it
+cannot say what it missed. It is not that the audit was applied carelessly;
+the instrument was wrong for the job.
+
+**What it missed.** `c4q04`, "Frustrated In Efforts to Get Service". In the
+fitted models it carries a mean coefficient of -1.31 at the `Never` level and
+is selected in 120 of 120 splits, against a next-largest coefficient of 0.15.
+Among 2,738 children whose families were never frustrated, 28 reported
+foregone care, a rate of 1%, rising to 55% among those always frustrated. That
+one variable alone scores AUC 0.8347, against 0.8709 for the full 292-feature
+model. The other 291 features contribute 0.036 of AUC between them.
+
+The pre-registered `foregone_care_strict` variant did not catch this. It
+removed `k4q22_r` and `k4q24_r` and moved AUC only from 0.8709 to 0.8591, so
+that sensitivity question is answered: those two columns are not the problem
+and they stay. The variant did its job; it was simply aimed at the wrong
+variables, for the same reason the audit was.
+
+**What is not wrong.** The follow-up items asked only of families who answered
+yes to `k4q27` are absent from both matrices. `issuecost`, `notopen`,
+`transportcc`, `appointment`, `available`, `notelig`, `treatneed`, `k4q26` and
+the entire `k4q28x` family were checked by name and none is present. The
+matrices were built without the logical-skip follow-ups, which is a real point
+in their favour and worth recording as a finding rather than as an absence of
+bad news.
+
+**The replacement.** `analyses/audit_feature_constructs.py` joins every
+feature column to the survey's own `label var` text and groups the features by
+what their questions ask. Both matrices now resolve at 100%, up from 55% on
+the full-population matrix before a punctuation-matching defect was fixed. The
+audit reads several years' `.do` files at once, because a harmonized matrix
+carries names drawn from different years and no single year covers it. Its
+output lives in `analyses/feature-audit/`.
+
+The rule this plan now adopts:
+
+> Exclude features whose question concerns the process of obtaining care in
+> the same twelve-month window as the outcome. Keep features describing the
+> child's or family's circumstances. Every exclusion cites a label from the
+> feature audit.
+
+**The rule is post-hoc and that has to be stated.** It was written after
+seeing that `c4q04` had a large coefficient. Its defence is that it is stated
+in terms of construct rather than of any variable or any coefficient size, it
+would have excluded `c4q04` at any magnitude, and it is applied uniformly to
+all four outcomes including ones whose features have not been examined. That
+is a weaker position than a rule fixed in advance, and it is recorded here as
+such rather than presented as though it had been.
+
+**Exclusions under the rule.**
+
+| Matrix | Excluded | Label |
+| --- | --- | --- |
+| both | `c4q04` | Frustrated In Efforts to Get Service |
+| both | `k5q10` | Need a Referral |
+| autism subset | `k5q11` | Need a Referral - Problem |
+| autism subset | `k5q20_r` | Arrange Or Coordinate Care Among Doctors |
+| autism subset | `k5q21` | Arrange Or Coordinate Care Extra Help |
+| full population | `k3q20` | Health Insurance - Benefits Cover Services |
+| full population | `k3q22` | Health Insurance - Allow to See Provider |
+| full population | `menbevcov` | Health Insurance - Cover Mental Behavioral Needs |
+
+These are added as `_conservative` outcome variants rather than replacing the
+primary specification. All specifications are reported. Amending the existing
+`foregone_care_strict` definition after seeing which variable was large would
+have been fitting the specification to the answer.
+
+**One exclusion the rule does not decide: insurance adequacy.** `k3q20`,
+`k3q22` and `menbevcov` ask how often insurance covered services, allowed the
+chosen provider, or covered mental and behavioural needs. These can be read as
+attributes of the plan, which is a circumstance, or as experiences of seeking
+care during the year, which is an episode. This plan reads them as episodes,
+because each asks about a frequency of encounters over the past twelve months
+rather than about what the policy says. A reasonable analyst could decide the
+other way. Recorded as a judgment, made once, applied consistently.
+
+Insurance type, coverage gaps and the specific coverage-source items stay:
+those describe what the family has, not what happened when they sought care.
+
+**What this does not settle.** These exclusions are chosen from the tier the
+audit flags plus a reading of the tier below it. That is far better than name
+matching, but it is still a human reading of 293 labels and it may miss
+something. The audit output is committed so that the reading can be checked
+and redone.
+
+### 24 August 2026: label drift on k4q20r, examined and dismissed
+
+The feature audit compares labels across survey years and flags any stem whose
+wording changed. `k4q20r`, the variable this plan already records a correction
+about, is one of them.
+
+2016 labels it "Doctor Visit - How Many Times". Every year from 2017 to 2024
+labels it "Preventive Visit - How Many Times". If the 2016 wording described a
+different question, then for that year zero visits would imply no emergency
+visits, and the original leak concern this plan overturned would have been
+correct for part of the data.
+
+Two pieces of evidence say the wording changed and the question did not. The
+response options are identical in every year checked: 0 visits, 1 visit, 2 or
+more visits. And the distribution is flat across all four periods, at
+10.8/52.4/36.8, 15.0/51.7/33.3, 14.1/54.3/31.6 and 12.3/53.9/33.8. A question
+that counted all doctor visits in 2016 and preventive visits afterwards would
+put noticeably more of the 2016-17 period in the top band, since a well-child
+check plus any sick visit would move a child up. It has slightly fewer. The
+2016-17 period pools 2016 with 2017, which would halve any 2016-only shift,
+but halved from an effect that large would still be visible.
+
+`k4q20r` stays. The plan's entry above stands, and its label citation should
+be read as 2017 onward rather than as 2024, which is the file it was
+originally checked against.
+
+The general lesson, since this variable has now turned on a single-file label
+twice: a label citation should name the survey year it came from. The audit
+output supports that and future entries should do it.
