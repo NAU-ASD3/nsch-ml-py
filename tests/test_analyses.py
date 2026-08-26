@@ -25,6 +25,12 @@ if TYPE_CHECKING:
 
 ANALYSES_DIR = Path(__file__).resolve().parent.parent / "analyses"
 
+# Some analysis scripts import their siblings by name, which works when they
+# are run directly because Python puts the script's directory first on the
+# path. Loading them here has to arrange the same thing.
+if str(ANALYSES_DIR) not in sys.path:
+    sys.path.insert(0, str(ANALYSES_DIR))
+
 
 def load_script(name: str) -> ModuleType:
     """Import a script from analyses/ by path."""
@@ -39,6 +45,8 @@ def load_script(name: str) -> ModuleType:
 
 criteria = load_script("soak_criteria")
 r_vs_r = load_script("r_vs_r")
+audit = load_script("audit_feature_constructs")
+outcomes = load_script("outcomes")
 
 
 # --- benjamini_hochberg ---------------------------------------------------
@@ -229,3 +237,186 @@ def test_contrast_stats_returns_nan_on_mismatched_lengths() -> None:
     mean_diff, p_value = r_vs_r.contrast_stats(run, "2019", "all", "same")
     assert np.isnan(mean_diff)
     assert np.isnan(p_value)
+
+
+# --- audit: matching a column name to a survey label ----------------------
+#
+# The full-population matrix spells labels out in its column names, so the
+# join compares letters and digits alone. An earlier version collapsed runs of
+# separators instead, which broke on every label containing " - ": the column
+# keeps one underscore per character and the collapsed label yields only one.
+# That cost 45% of the coverage on that matrix, so it is covered here.
+
+
+def normalised_labels(labels: dict[str, str]) -> list[tuple[str, str]]:
+    """Labels in the form resolve_by_prefix expects, longest first."""
+    return sorted(
+        ((audit.letters_and_digits(text), stem) for stem, text in labels.items()),
+        key=lambda pair: len(pair[0]),
+        reverse=True,
+    )
+
+
+def test_letters_and_digits_drops_punctuation_and_case() -> None:
+    assert audit.letters_and_digits("Age of Selected Child - In Years") == (
+        audit.letters_and_digits("Age_of_Selected_Child___In_Years")
+    )
+
+
+def test_resolve_by_prefix_matches_across_a_dash_separator() -> None:
+    """The regression: three underscores in the column, one separator in the label."""
+    labels = {"sc_age_years": "Age of Selected Child - In Years"}
+    stem, level = audit.resolve_by_prefix(
+        "Age_of_Selected_Child___In_Years", normalised_labels(labels)
+    )
+    assert stem == "sc_age_years"
+    assert level == ""
+
+
+def test_resolve_by_prefix_returns_the_level_after_the_label() -> None:
+    labels = {"k4q27": "Needed Health Care Not Received"}
+    stem, level = audit.resolve_by_prefix(
+        "Needed_Health_Care_Not_Received_Yes", normalised_labels(labels)
+    )
+    assert stem == "k4q27"
+    assert level == "Yes"
+
+
+def test_resolve_by_prefix_prefers_the_longer_label() -> None:
+    """A short label must not shadow a longer one that starts the same way."""
+    labels = {
+        "short": "Health Insurance",
+        "long": "Health Insurance - Allow to See Provider",
+    }
+    stem, _ = audit.resolve_by_prefix(
+        "Health_Insurance___Allow_to_See_Provider_Always", normalised_labels(labels)
+    )
+    assert stem == "long"
+
+
+def test_resolve_by_prefix_reports_no_match() -> None:
+    stem, level = audit.resolve_by_prefix("Something_Unknown_Yes", normalised_labels({}))
+    assert (stem, level) == ("", "")
+
+
+# --- audit: resolving a stem, with rename aliases -------------------------
+#
+# Harmonization renames a few columns, so the matrix may know a variable under
+# a name a given year's .do file does not, or under the name that year uses.
+# Applying the alias unconditionally broke the years where the matrix already
+# carries the survey's own name.
+
+
+def test_resolve_by_stem_prefers_the_literal_name() -> None:
+    stem, level = audit.resolve_by_stem(
+        "k4q02_r=Doctors Office", {"k4q02_r": "Place Usually Goes When Sick"}
+    )
+    assert stem == "k4q02_r"
+    assert level == "Doctors Office"
+
+
+def test_resolve_by_stem_falls_back_to_the_alias() -> None:
+    stem, level = audit.resolve_by_stem(
+        "k4q02_r=Doctors Office", {"gowhensick": "Place Usually Goes When Sick"}
+    )
+    assert stem == "gowhensick"
+    assert level == "Doctors Office"
+
+
+def test_resolve_by_stem_reports_no_match_when_neither_name_is_known() -> None:
+    assert audit.resolve_by_stem("k4q02_r=Doctors Office", {}) == ("", "")
+
+
+# --- audit: tiering by construct ------------------------------------------
+
+
+def test_classify_flags_a_care_seeking_question() -> None:
+    assert audit.classify("Frustrated In Efforts to Get Service") == "care-seeking"
+    assert audit.classify("Needed Health Care Not Received") == "care-seeking"
+
+
+def test_classify_does_not_flag_a_symptom_named_difficulty() -> None:
+    """'Difficulty Toothaches' is a symptom, not a barrier to obtaining care."""
+    assert audit.classify("Difficulty Toothaches Past 12 Months") != "care-seeking"
+
+
+def test_classify_does_not_flag_developmental_delay() -> None:
+    """Matching 'delay' rather than 'delayed' put a child's condition in tier 1."""
+    assert audit.classify("Developmental Delay") != "care-seeking"
+
+
+def test_classify_leaves_an_ordinary_circumstance_alone() -> None:
+    assert audit.classify("Age of Selected Child - In Years") == "circumstance"
+
+
+# --- outcomes: the registry both the fold draw and the runner read ---------
+
+
+def test_feature_columns_excludes_structural_and_outcome_columns() -> None:
+    spec = outcomes.SERVICE_USE
+    outcome = spec.outcomes["ed_any"]
+    columns = [*spec.non_feature_columns, *outcome.drop_columns, "sc_age_years"]
+    assert spec.feature_columns(columns, outcome) == ["sc_age_years"]
+
+
+def test_feature_columns_preserves_input_order() -> None:
+    spec = outcomes.SERVICE_USE
+    outcome = spec.outcomes["ed_any"]
+    columns = ["b", "a", "c"]
+    assert spec.feature_columns(columns, outcome) == ["b", "a", "c"]
+
+
+def test_folds_key_defaults_to_the_outcome_key() -> None:
+    assert outcomes.SERVICE_USE.outcomes["ed_any"].folds_key == "ed_any"
+
+
+def test_folds_key_follows_folds_from_for_a_variant() -> None:
+    assert outcomes.SERVICE_USE.outcomes["foregone_care_conservative"].folds_key == "foregone_care"
+
+
+def test_every_variant_names_a_base_outcome_that_exists() -> None:
+    """A variant pointing at a missing fold source would fail only at run time."""
+    for spec in outcomes.MATRICES.values():
+        for outcome in spec.outcomes.values():
+            assert outcome.folds_key in spec.outcomes
+
+
+def test_a_variant_shares_its_base_outcome_positive_rule() -> None:
+    """Sharing folds is only legitimate if the positive class is identical.
+
+    Expressions do not compare, so this checks the strings they serialise to,
+    which is enough to catch a variant pointed at the wrong base.
+    """
+    for spec in outcomes.MATRICES.values():
+        for outcome in spec.outcomes.values():
+            if outcome.folds_from is None:
+                continue
+            base = spec.outcomes[outcome.folds_from]
+            assert str(outcome.positive) == str(base.positive)
+
+
+def test_a_variant_removes_at_least_what_its_base_removes() -> None:
+    for spec in outcomes.MATRICES.values():
+        for outcome in spec.outcomes.values():
+            if outcome.folds_from is None:
+                continue
+            base = spec.outcomes[outcome.folds_from]
+            assert set(base.drop_columns) <= set(outcome.drop_columns)
+
+
+def test_no_outcome_keeps_its_own_columns_as_features() -> None:
+    """The failure this guards against is silent: the model would look excellent."""
+    for spec in outcomes.MATRICES.values():
+        for outcome in spec.outcomes.values():
+            columns = [*spec.non_feature_columns, *outcome.drop_columns]
+            assert spec.feature_columns(columns, outcome) == []
+
+
+def test_matrix_or_exit_rejects_an_unknown_matrix() -> None:
+    with pytest.raises(SystemExit):
+        outcomes.matrix_or_exit("not_a_matrix")
+
+
+def test_outcome_or_exit_rejects_an_unknown_outcome() -> None:
+    with pytest.raises(SystemExit):
+        outcomes.SERVICE_USE.outcome_or_exit("not_an_outcome")

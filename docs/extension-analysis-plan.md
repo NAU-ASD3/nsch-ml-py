@@ -653,3 +653,67 @@ originally checked against.
 The general lesson, since this variable has now turned on a single-file label
 twice: a label citation should name the survey year it came from. The audit
 output supports that and future entries should do it.
+
+### 26 August 2026: chasing the repeat ED use anomaly
+
+One task disagrees with the other fourteen. Repeat emergency department use
+among children with autism has an equal-size All-minus-Same of -0.0286
+(p 0.053) and Other-minus-Same of -0.0341 (p 0.030), where every other task is
+indistinguishable from zero. Training on other periods is worse there, not
+merely no better.
+
+The plan warned in advance that this task would be the thinnest in the design,
+at roughly seven positive cases per test cell, so the obvious explanation is
+noise rather than signal. Three checks were run to test that, all departing
+from the pre-registered design, all recorded here before their results were
+used.
+
+**A place for departures.** Anything not run under the pre-registered design
+goes in `analyses/results/variants/` rather than `analyses/results/`. The
+contrast script globs a single directory without recursing, so nothing in
+`variants/` can drift into a summary of the pre-registered set by accident.
+Every file there needs an entry in this document saying why it exists.
+
+**Check one: the same population, ten times the cases.** The identical outcome
+on the full-population matrix has 580 and 715 positives per year against 70 to
+88 per period on the autism subset. Its equal-size contrasts are -0.0023
+(p 0.38) and -0.0037 (p 0.23), and its conservative variant agrees. So the
+anomaly does not follow the outcome definition across populations. That is
+consistent with thinness, and also with an effect present only among children
+with autism; this check alone cannot separate those.
+
+**Check two: five folds instead of ten.** Halving the fold count doubles the
+cases per test set, from about seven to about fourteen, without changing the
+population or the outcome. If the anomaly is noise from thin cells it should
+shrink toward zero.
+
+One caveat on that check, stated because it weakens the inference: five folds
+also shrinks each training set, since `Same` trains on four fifths of a period
+rather than nine tenths. So it is not a clean manipulation of test-set size
+alone. The equal-size arm renormalises to the smallest source either way, so
+the comparison stays internally consistent.
+
+**Check three: three fold draws instead of one.** The plan fixes seed 1. Runs
+at seeds 2 and 3 test whether the estimate is a property of the data or of one
+partition. `ed_any` on the same matrix is run at seed 2 as a control, because
+a spread means nothing without a task we believe is well behaved to compare it
+against.
+
+Varying the seed moves the fold draw and the downsampling draw together, so a
+large spread would not say which is responsible. Separating them would need a
+run holding folds fixed while varying only the downsample, which is not done
+here.
+
+**What these checks can and cannot establish, decided before seeing them.**
+Three seeds is enough to distinguish an estimate that moves by a few
+thousandths from one that moves by as much as it differs from zero. It is not
+enough to put a confidence statement on the variability itself. The reading is
+comparative: `ed_repeat` against `ed_any`, on the same matrix, under the same
+treatment.
+
+Whatever these show, every result from `variants/` is exploratory. The
+confirmatory contrast remains the pre-registered one at ten folds and seed 1,
+and nothing here changes it. If the anomaly survives, it earns a stated
+limitation and a sentence in the write-up describing what is not known about
+it. It does not become a finding on the strength of checks designed after it
+appeared.
