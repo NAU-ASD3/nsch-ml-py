@@ -2,8 +2,20 @@
 
 Fits a penalized logistic regression on every SOAK split and compares
 test AUC and accuracy against the R reference in
-``reproduce-soak-nsch/results/2026-03-06/NSCH_proj.csv``
+``reproduce-soak-nsch/results/seed-variation/NSCH_seed1.csv``
 (``classif.cv_glmnet``, same fixture, same folds).
+
+Which R run is the reference matters more than it looks. Two R runs that
+differ only in a random seed disagree by as much as 0.0206 AUC on
+individual splits, an order of magnitude larger than any R-to-Python gap
+this script reports. ``NSCH_seed1.csv`` is the run that shares our fold
+assignment and was verified row by row, and it is what every committed
+result and every figure in ``docs/replication-equivalence.md`` was
+produced against. This file previously defaulted to
+``results/2026-03-06/NSCH_proj.csv``, a different draw, so a rerun with
+the old default produced ``r_auc`` values disagreeing with the committed
+results for no reason a reader could see. Override with
+``NSCH_SOAK_REFERENCE`` to compare against a different run deliberately.
 
 Why two selection rules
 -----------------------
@@ -77,7 +89,7 @@ DEFAULT_FIXTURE = Path.home() / "Documents/NAU/Grad/Research/ADSI/soak_fixture"
 DEFAULT_REFERENCE = (
     Path.home()
     / "Documents/NAU/Grad/Research/ADSI/reproduce-soak-nsch"
-    / "results/2026-03-06/NSCH_proj.csv"
+    / "results/seed-variation/NSCH_seed1.csv"
 )
 N_FOLDS = 10
 SEED = 1

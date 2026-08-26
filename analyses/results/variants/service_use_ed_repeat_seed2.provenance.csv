@@ -1,0 +1,31 @@
+field,value
+started_utc,2026-08-26T19:30:49+00:00
+finished_utc,2026-08-26T19:55:15+00:00
+elapsed_seconds,1466
+git_commit,0bdd93573070b14c68f4601bd05389b6e2c22240
+matrix_key,service_use
+matrix,/Users/chrisreger/Documents/NAU/Grad/Research/ADSI/Monsoon - ASD3 ML Old/2016_2023_ServiceUse.csv
+matrix_md5,f2a64b712a7d56f3898e94c48fbf0c65
+outcome,ed_repeat
+outcome_label,Emergency department use: two or more visits
+folds,analyses/folds/service_ed_repeat_seed2_folds.csv
+folds_md5,4b612f83e3eeacb465507eec3d049939
+folds_drawn_for,ed_repeat
+dropped_from_features,"hospitaler=None, hospitaler=1 time"
+n_features,292
+rows,6088
+positives,393
+sizes,0
+seed,2
+n_splits,200
+penalty,lasso
+solver,liblinear
+intercept_scaling,100
+inner_cv,5
+n_penalties,60
+python,3.13.13
+nsch-ml,2026.8.25
+polars,1.43.2
+numpy,2.4.6
+scikit-learn,1.9.0
+scipy,1.18.0

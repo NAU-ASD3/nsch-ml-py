@@ -1,0 +1,18 @@
+field,value
+drawn_at_utc,2026-08-26T19:29:38+00:00
+matrix_key,service_use
+outcome,ed_repeat
+outcome_label,Emergency department use: two or more visits
+matrix,/Users/chrisreger/Documents/NAU/Grad/Research/ADSI/Monsoon - ASD3 ML Old/2016_2023_ServiceUse.csv
+matrix_md5,f2a64b712a7d56f3898e94c48fbf0c65
+rows,6088
+positives,393
+n_folds,10
+seed,2
+stratified_on,"(period, outcome)"
+dropped_from_features,"hospitaler=None, hospitaler=1 time"
+python,3.13.13
+nsch-ml,2026.8.25
+polars,1.43.2
+numpy,2.4.6
+scikit-learn,1.9.0

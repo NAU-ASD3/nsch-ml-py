@@ -1,0 +1,31 @@
+field,value
+started_utc,2026-08-25T07:45:18+00:00
+finished_utc,2026-08-25T11:25:59+00:00
+elapsed_seconds,13241
+git_commit,14227209df4192eac1fce5de4c8fe00ca22f0f15
+matrix_key,fixture
+matrix,/Users/chrisreger/Documents/NAU/Grad/Research/ADSI/reproduce-soak-nsch/data_Classif/NSCH_autism.csv
+matrix_md5,8c1e5a82e75d9e74eaa94a2dbe6c8a36
+outcome,ed_any
+outcome_label,Emergency department use: one or more visits
+folds,analyses/folds/fixture_ed_any_folds.csv
+folds_md5,2bf517fa4b4c13bac86f9ad2fe930790
+folds_drawn_for,ed_any
+dropped_from_features,"Hospital_Emergency_Room_Visits_None, Hospital_Emergency_Room_Visits_1_time"
+n_features,362
+rows,46010
+positives,6917
+sizes,0
+seed,1
+n_splits,100
+penalty,lasso
+solver,liblinear
+intercept_scaling,100
+inner_cv,5
+n_penalties,60
+python,3.13.13
+nsch-ml,2026.8.12.1
+polars,1.43.2
+numpy,2.4.6
+scikit-learn,1.9.0
+scipy,1.18.0

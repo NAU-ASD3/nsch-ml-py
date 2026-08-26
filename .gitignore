@@ -232,6 +232,10 @@ analyses/figures/
 # analyses/draw_outcome_folds.py rather than committing the assignment.
 analyses/folds/*_folds.csv
 
+# A scratch script for a question that was answered and did not become part of
+# the analysis. Kept locally rather than committed or deleted.
+analyses/diagnose_downsample_rule.py
+
 # Per-child predictions and per-split coefficients run to tens of megabytes.
 # They are derived artifacts: the metrics CSV and its provenance record are
 # tracked, and these can be rebuilt from them by rerunning the same command.
