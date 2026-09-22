@@ -23,6 +23,10 @@ exists, these are the places to start:
   populations each is valid for, what is removed from the features and why,
   how folds are drawn, and what this pass deliberately leaves out. Committed
   before the first model was fitted against any of those outcomes.
+- **[A prediction about the 2024 data](anomaly-2024-prediction.md)** commits to
+  what we expect the next survey year to show about one unexplained result, and
+  to how that will be tested, before the data is in hand. It also records what
+  would prove us wrong.
 - **[Design decisions](design-decisions.md)** records the choices a
   maintainer might otherwise re-litigate: why predictions and not
   coefficients, why we wrote our own splitter, what the label conventions
