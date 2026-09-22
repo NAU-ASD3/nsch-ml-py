@@ -8,7 +8,7 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
-## 2026.9.21 (PR#NN)
+## 2026.9.21 (PR#32)
 
 - Added `nsch_ml.prevalence`, which computes autism prevalence among children aged 3 to 17 straight from the Census topical files. It reads the raw Stata files with `pyreadstat` so the four tagged-NA types stay distinct, which the "currently has autism" denominator depends on: a No to the ever-diagnosed question skips the current-status question by design, and that skip has to be told apart from a blank.
 - Standard errors follow the Census multi-year guide: `FWC` as the weight (divided by the number of years when pooling), state crossed with `STRATUM` as strata after the `2A` to `2` recode, household as the sampling unit, Taylor linearization, and logit intervals for proportions. The linearized standard error was checked against an independent survey package on the 2024 file and agreed to every printed digit.
