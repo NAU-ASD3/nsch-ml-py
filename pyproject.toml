@@ -2,7 +2,7 @@
 name = "nsch-ml"
 # Date-based versioning, matching the nsch and nsch-py convention.
 # Bumped to the merge day on every PR.
-version = "2026.8.26"
+version = "2026.9.21"
 description = "Python replication of the ASD3 NSCH machine-learning analysis: SOAK cross-validation, penalized models, SHAP, and fairness analyses on the harmonized NSCH dataset."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,6 +38,10 @@ dependencies = [
     "scikit-learn>=1.6",
     "xgboost>=2.1",
     "shap>=0.46",
+    # Reads the Census Stata files directly for the prevalence module. It is
+    # the one reader that keeps Stata's four tagged-NA types apart, which the
+    # "currently has autism" denominator depends on.
+    "pyreadstat>=1.2",
 ]
 # The svy package is deliberately absent until the install question is
 # settled. See planning/workstream-c-scoping.md, sections 4 and 7.

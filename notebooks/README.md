@@ -16,12 +16,21 @@ failing somewhere further down with a confusing error.
 | `REPRO` | `reproduce-soak-nsch`, the R reference runs and the fixture matrix |
 | `PAPER` | `cv-same-other-paper`, the SOAK paper's own repository |
 | `MONSOON_OLD` | `Monsoon - ASD3 ML Old`, the surviving matrices from the prior analysis |
+| `NSCH_RAW` | the unzipped Census topical `.dta` and `.do` files for 2016 to 2024, in any folder layout |
+| `NSCH_CLEAN` | optional: a Parquet file of the harmonized pipeline output, for the notebook check that compares it against the raw files |
 
 Set them in your shell profile so they persist:
 
     export REPRO="$HOME/path/to/reproduce-soak-nsch"
     export PAPER="$HOME/path/to/cv-same-other-paper"
     export MONSOON_OLD="$HOME/path/to/Monsoon - ASD3 ML Old"
+    export NSCH_RAW="$HOME/path/to/nsch-raw"
+
+The Census files come from
+<https://www2.census.gov/programs-surveys/nsch/datasets/>, one
+`nsch_YYYY_topical_Stata.zip` per year (the 2023 file is named
+`nsch_2023e_topical_Stata.zip`). Unzip each one; the notebooks find the files
+by name, so the folder layout does not matter.
 
 No committed file contains an absolute path to anyone's home directory.
 
@@ -63,3 +72,19 @@ That exclusion is another argument for keeping real computation in `analyses/`
 and `src/nsch_ml`, where the type checker does apply.
 
 `__marimo__/` holds session caches and is gitignored.
+
+## The notebooks
+
+`replication_side_by_side.py` is the team-facing account of the R-to-Python
+replication and the outcome extension it enables.
+
+`summer_results_review.py` is the slide deck from the August results review.
+
+`autism_prevalence_2016_2024.py` reports how many children aged 3 to 17 ever
+had, and currently have, autism in each survey year and across all nine years
+pooled, with sample counts, weighted percents and population estimates. It
+reads the raw Census files through `nsch_ml.prevalence`, reproduces CAHMI's
+published 2023-2024 table as a check, and refuses to display anything if one
+of its checks fails. The tracked results table it corresponds to is
+`analyses/results/autism_prevalence_2016_2024.csv`, written by
+`analyses/autism_prevalence.py`.
