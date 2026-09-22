@@ -15,6 +15,7 @@ so each version stays unique and the date stays honest.
 - Added `notebooks/autism_prevalence_2016_2024.py`, which answers the number-and-percent question per year and pooled, with three figures. It reproduces CAHMI's published 2023-2024 Indicator 2.8 table exactly, on sample counts, population estimates and percents, and stops if that ever stops being true. Every child in the age band is placed in one of five answer groups that are asserted to sum to the total, and the code labels for both items are read from each year's `.do` file and asserted identical across years.
 - Added `analyses/autism_prevalence.py`, which writes the tracked table under `analyses/results/` beside a provenance record naming each input file's SHA-256. The Census Bureau reissued the 2016 to 2021 files with revised weights, so the fingerprint is what says which release a number came from.
 - `pyreadstat` is a new runtime dependency. `NSCH_RAW` is a new environment variable for the notebooks, documented in `notebooks/README.md`.
+- Fifteen tests cover the module. The file reader is tested against small `.dta` files written into a temporary directory with `pyreadstat.write_dta`, tagged missing values included, so the skip-versus-blank distinction is exercised on a real Stata file and not on a stand-in.
 
 ## 2026.8.26 (PR#28)
 
