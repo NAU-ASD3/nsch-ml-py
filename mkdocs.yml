@@ -65,6 +65,7 @@ nav:
   - Design decisions: design-decisions.md
   - API:
       - soak: api/soak.md
+      - prevalence: api/prevalence.md
   # Onboarding, a development walkthrough, and the API reference will be
   # added as the package gains functions in subsequent PRs. Planning
   # documents live in planning/ at the repo root, outside the docs site.

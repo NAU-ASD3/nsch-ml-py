@@ -8,6 +8,14 @@ bumped per PR to the date it lands. When two PRs land on the same day, the
 second and later append a micro segment (`YYYY.M.DD.MICRO`, e.g. `2026.6.29.1`)
 so each version stays unique and the date stays honest.
 
+## 2026.9.21 (PR#NN)
+
+- Added `nsch_ml.prevalence`, which computes autism prevalence among children aged 3 to 17 straight from the Census topical files. It reads the raw Stata files with `pyreadstat` so the four tagged-NA types stay distinct, which the "currently has autism" denominator depends on: a No to the ever-diagnosed question skips the current-status question by design, and that skip has to be told apart from a blank.
+- Standard errors follow the Census multi-year guide: `FWC` as the weight (divided by the number of years when pooling), state crossed with `STRATUM` as strata after the `2A` to `2` recode, household as the sampling unit, Taylor linearization, and logit intervals for proportions. The linearized standard error was checked against an independent survey package on the 2024 file and agreed to every printed digit.
+- Added `notebooks/autism_prevalence_2016_2024.py`, which answers the number-and-percent question per year and pooled, with three figures. It reproduces CAHMI's published 2023-2024 Indicator 2.8 table exactly, on sample counts, population estimates and percents, and stops if that ever stops being true. Every child in the age band is placed in one of five answer groups that are asserted to sum to the total, and the code labels for both items are read from each year's `.do` file and asserted identical across years.
+- Added `analyses/autism_prevalence.py`, which writes the tracked table under `analyses/results/` beside a provenance record naming each input file's SHA-256. The Census Bureau reissued the 2016 to 2021 files with revised weights, so the fingerprint is what says which release a number came from.
+- `pyreadstat` is a new runtime dependency. `NSCH_RAW` is a new environment variable for the notebooks, documented in `notebooks/README.md`.
+
 ## 2026.8.26 (PR#28)
 
 - Added the results of the fifteen pre-registered extension tasks, with a provenance record beside each naming its matrix checksum, fold file, seed, split count and package versions. The scientific packages in those records match the current environment, so every result here reproduces from the repository as it stands.
